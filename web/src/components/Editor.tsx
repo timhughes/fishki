@@ -25,8 +25,6 @@ import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/s
 import { useTheme, Theme } from '@mui/material/styles';
 import { CodeProps } from 'react-markdown/lib/ast-to-react';
 
-type URLParams = Record<string, string | undefined>;
-
 type ViewMode = 'edit' | 'preview' | 'split';
 
 interface SaveResponse {
@@ -63,8 +61,11 @@ const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
 };
 
 const Editor: React.FC = () => {
-  const { filename } = useParams<URLParams>();
-  const actualFilename = (filename || 'index') + '.md';
+  const params = useParams();
+  const pathParam = params.path || 'index';
+  console.log('Editor Path:', { pathParam, params }); // Debug log
+  const actualFilename = pathParam;
+  const fullFilename = actualFilename + '.md';
   const navigate: NavigateFunction = useNavigate();
   const [content, setContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -75,21 +76,30 @@ const Editor: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/load?filename=${actualFilename}`)
-      .then((response) => {
+    const loadContent = async () => {
+      setLoading(true);
+      try {
+        console.log('Editor Loading:', fullFilename); // Debug log
+        const response = await fetch(`/api/load?filename=${encodeURIComponent(fullFilename)}`);
+        
         if (!response.ok && response.status !== 404) {
           throw new Error('Failed to load page');
         }
-        return response.text();
-      })
-      .then((text: string) => {
+        
+        const text = await response.text();
+        console.log('Editor Content Loaded:', fullFilename, !!text); // Debug log
         setContent(text);
         setError(null);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [filename, actualFilename]);
+      } catch (err) {
+        console.error('Editor Load Error:', err); // Debug log
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContent();
+  }, [fullFilename]);
 
   const handleSave = async (): Promise<void> => {
     setSaving(true);
@@ -98,7 +108,7 @@ const Editor: React.FC = () => {
       const saveResponse = await fetch('/api/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: actualFilename, content }),
+        body: JSON.stringify({ filename: fullFilename, content }),
       });
 
       if (!saveResponse.ok) {
@@ -109,7 +119,7 @@ const Editor: React.FC = () => {
       const commitResponse = await fetch('/api/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: commitMessage || `Updated ${actualFilename}` }),
+        body: JSON.stringify({ message: commitMessage || `Updated ${fullFilename}` }),
       });
 
       if (!commitResponse.ok) {
@@ -120,7 +130,7 @@ const Editor: React.FC = () => {
       window.dispatchEvent(new Event('wiki-save'));
 
       // Navigate back to view mode
-      navigate(`/${(filename || 'index').replace(/\.md$/, '')}`);
+      navigate(pathParam === 'index' ? '/' : `/${pathParam}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

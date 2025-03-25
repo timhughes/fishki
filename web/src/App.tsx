@@ -58,10 +58,10 @@ const App: React.FC = () => {
           >
             <Breadcrumbs />
             <Routes>
-              <Route path="/" element={<WikiPage />} />
               <Route path="/edit" element={<Editor />} />
-              <Route path="/:filename" element={<WikiPage />} />
-              <Route path="/:filename/edit" element={<Editor />} />
+              <Route path="/:path(*)/edit" element={<Editor />} />
+              <Route path="/:path(*)" element={<WikiPage />} />
+              <Route path="/" element={<WikiPage />} />
             </Routes>
           </Box>
         </Box>

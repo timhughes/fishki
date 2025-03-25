@@ -15,23 +15,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock react-markdown to return a simple div with the content
-jest.mock('react-markdown', () => {
-  function MockMarkdown(props: { children: string }) {
-    return `<div data-testid="markdown">${props.children}</div>`;
-  }
-  MockMarkdown.displayName = 'ReactMarkdown';
-  return MockMarkdown;
-});
-
-// Mock react-syntax-highlighter
-jest.mock('react-syntax-highlighter', () => ({
-  Prism: function MockPrism(props: { children: string }) {
-    return `<pre>${props.children}</pre>`;
-  }
-}));
-
-// Mock syntax highlighter styles
+// Mock the styles module as a simple object
 jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   materialDark: {},
   materialLight: {},

@@ -1,29 +1,34 @@
 import React from 'react';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, waitFor } from '@testing-library/react';
 import { render } from '../../test-utils/test-utils';
+import userEvent from '@testing-library/user-event';
+import { act } from '@testing-library/react';
 import Editor from '../Editor';
 
-// Mock fetch globally
+// Mock setup
 const mockedFetch = jest.fn();
-global.fetch = mockedFetch;
-
-// Mock window.dispatchEvent
 const mockDispatchEvent = jest.fn();
+const mockNavigate = jest.fn();
+
+global.fetch = mockedFetch;
 window.dispatchEvent = mockDispatchEvent;
 
-// Mock useNavigate
-const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
 describe('Editor', () => {
+  const originalDispatchEvent = window.dispatchEvent;
+
   beforeEach(() => {
     mockedFetch.mockClear();
     mockNavigate.mockClear();
     mockDispatchEvent.mockClear();
+  });
+
+  afterEach(() => {
+    window.dispatchEvent = originalDispatchEvent;
   });
 
   it('should show loading state initially', () => {
@@ -49,37 +54,40 @@ describe('Editor', () => {
   });
 
   it('should switch between view modes', async () => {
-    mockedFetch.mockImplementationOnce(() =>
+    mockedFetch.mockImplementationOnce(() => 
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve('# Test Content'),
       })
     );
 
-    render(<Editor />, { initialEntries: ['/test/edit'] });
+    const { waitForEffects } = render(<Editor />, { initialEntries: ['/test/edit'] });
 
-    // Wait for content to load
-    await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    await act(async () => {
+      await waitFor(() => {
+        expect(screen.getByRole('textbox')).toBeInTheDocument();
+      });
+      
+      // Switch modes with proper batching
+      await userEvent.click(screen.getByRole('button', { name: /preview/i }));
+      await waitForEffects();
     });
 
-    // Test preview mode
-    fireEvent.click(screen.getByRole('button', { name: /preview/i }));
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByText('Test Content')).toBeInTheDocument();
 
-    // Test split mode
-    fireEvent.click(screen.getByRole('button', { name: /split/i }));
+    // Split mode
+    await userEvent.click(screen.getByRole('button', { name: /split/i }));
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByText('Test Content')).toBeInTheDocument();
 
-    // Back to edit mode
-    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+    // Edit mode
+    await userEvent.click(screen.getByRole('button', { name: /edit/i }));
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.queryByText('Test Content', { selector: 'h1' })).not.toBeInTheDocument();
   });
 
-  it('should handle save functionality', async () => {
+  it('should save content with commit message', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -99,7 +107,7 @@ describe('Editor', () => {
     await userEvent.type(editor, '# New Content');
 
     // Click save button
-    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save$/i }));
 
     // Check if commit dialog appears
     expect(screen.getByText(/commit message/i)).toBeInTheDocument();
@@ -112,7 +120,7 @@ describe('Editor', () => {
     // Enter commit message and save
     const commitInput = screen.getByLabelText(/commit message/i);
     await userEvent.type(commitInput, 'Test commit');
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
       // Verify API calls
@@ -153,10 +161,10 @@ describe('Editor', () => {
     });
 
     // Try to save
-    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save$/i }));
     const commitInput = screen.getByLabelText(/commit message/i);
     await userEvent.type(commitInput, 'Test commit');
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
@@ -178,7 +186,7 @@ describe('Editor', () => {
     });
 
     // Switch to split mode
-    fireEvent.click(screen.getByRole('button', { name: /split/i }));
+    await userEvent.click(screen.getByRole('button', { name: /split/i }));
 
     // Edit content
     const editor = screen.getByRole('textbox');
@@ -205,8 +213,8 @@ describe('Editor', () => {
     });
 
     // Save without commit message
-    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
       const commitCall = mockedFetch.mock.calls[2][1].body;

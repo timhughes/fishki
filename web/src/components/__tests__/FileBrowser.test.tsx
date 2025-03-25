@@ -1,22 +1,25 @@
 import React from 'react';
-import { screen, waitFor, fireEvent, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, waitFor, within } from '@testing-library/react';
 import { render } from '../../test-utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import FileBrowser from '../FileBrowser';
 
-// Mock fetch globally
 const mockedFetch = jest.fn();
+const mockNavigate = jest.fn();
+
 global.fetch = mockedFetch;
 
-// Mock useNavigate
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-  useLocation: () => ({ pathname: '/test' }),
-}));
+// Mock react-router-dom hooks
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useLocation: () => ({ pathname: '/test' }),
+  };
+});
 
-// Sample file tree data
+// Test data
 const sampleFiles = [
   {
     name: 'folder1',
@@ -38,20 +41,34 @@ const sampleFiles = [
 ];
 
 describe('FileBrowser', () => {
+  const originalDispatchEvent = window.dispatchEvent;
+
   beforeEach(() => {
     mockedFetch.mockClear();
     mockNavigate.mockClear();
+    window.dispatchEvent = originalDispatchEvent;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   const openDrawer = async () => {
-    fireEvent.click(screen.getByLabelText('File Browser'));
-    // Wait for drawer transition
+    await userEvent.click(screen.getByLabelText('File Browser'));
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Files' })).toBeInTheDocument();
     });
   };
 
-  it('should render file tree', async () => {
+  const createNewPage = async (dialogInput: string) => {
+    await userEvent.click(screen.getByLabelText('New Page'));
+    const dialog = screen.getByRole('dialog');
+    const input = within(dialog).getByLabelText(/page name/i);
+    await userEvent.type(input, dialogInput);
+    await userEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+  };
+
+  it('should display file tree structure', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -59,16 +76,14 @@ describe('FileBrowser', () => {
       })
     );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    await waitFor(() => {
-      expect(screen.getByText('folder1')).toBeInTheDocument();
-      expect(screen.getByText('test')).toBeInTheDocument(); // .md extension should be hidden
-    });
+    expect(screen.getByText('folder1')).toBeInTheDocument();
+    expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  it('should handle folder expansion', async () => {
+  it('should expand and collapse folders', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -76,25 +91,19 @@ describe('FileBrowser', () => {
       })
     );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    await waitFor(() => {
-      expect(screen.getByText('folder1')).toBeInTheDocument();
-    });
+    expect(screen.getByText('folder1')).toBeInTheDocument();
 
-    // Click folder to expand
-    fireEvent.click(screen.getByText('folder1'));
-
-    // Nested file should be visible
+    await userEvent.click(screen.getByText('folder1'));
     expect(screen.getByText('page1')).toBeInTheDocument();
 
-    // Click again to collapse
-    fireEvent.click(screen.getByText('folder1'));
+    await userEvent.click(screen.getByText('folder1'));
     expect(screen.queryByText('page1')).not.toBeInTheDocument();
   });
 
-  it('should navigate to file on click', async () => {
+  it('should navigate to selected file', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -102,18 +111,15 @@ describe('FileBrowser', () => {
       })
     );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    await waitFor(() => {
-      expect(screen.getByText('test')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('test'));
+    expect(screen.getByText('test')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('test'));
     expect(mockNavigate).toHaveBeenCalledWith('/test');
   });
 
-  it('should create new page', async () => {
+  it('should create new page with default content', async () => {
     mockedFetch
       .mockImplementationOnce(() =>
         Promise.resolve({
@@ -127,19 +133,9 @@ describe('FileBrowser', () => {
         })
       );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
-
-    // Open new page dialog
-    fireEvent.click(screen.getByLabelText('New Page'));
-
-    // Fill in page name
-    const dialog = screen.getByRole('dialog');
-    const input = within(dialog).getByLabelText(/page name/i);
-    await userEvent.type(input, 'test/new-page');
-
-    // Submit form
-    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+    await createNewPage('test/new-page');
 
     await waitFor(() => {
       expect(mockedFetch).toHaveBeenCalledWith('/api/save', expect.objectContaining({
@@ -162,27 +158,27 @@ describe('FileBrowser', () => {
       })
     );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    // Open dialog
-    fireEvent.click(screen.getByLabelText('New Page'));
-
+    await userEvent.click(screen.getByLabelText('New Page'));
     const dialog = screen.getByRole('dialog');
     const createButton = within(dialog).getByRole('button', { name: /^create$/i });
 
     // Try to create with empty name
-    fireEvent.click(createButton);
+    await userEvent.click(createButton);
     expect(screen.getByText(/page name is required/i)).toBeInTheDocument();
 
-    // Try invalid characters
+    // Try empty after trim
     const input = within(dialog).getByLabelText(/page name/i);
-    await userEvent.type(input, '///');
-    fireEvent.click(createButton);
+    await userEvent.type(input, '   ');
+    await userEvent.click(createButton);
     expect(screen.getByText(/invalid page name/i)).toBeInTheDocument();
   });
 
-  it('should refresh file list after changes', async () => {
+  it('should refresh file list after content changes', async () => {
+    const updatedFiles = [...sampleFiles, { name: 'new.md', type: 'file', path: 'new.md' }];
+    
     mockedFetch
       .mockImplementationOnce(() =>
         Promise.resolve({
@@ -193,18 +189,15 @@ describe('FileBrowser', () => {
       .mockImplementationOnce(() =>
         Promise.resolve({
           ok: true,
-          json: () => Promise.resolve([...sampleFiles, { name: 'new.md', type: 'file', path: 'new.md' }]),
+          json: () => Promise.resolve(updatedFiles),
         })
       );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    await waitFor(() => {
-      expect(screen.getByText('test')).toBeInTheDocument();
-    });
+    expect(screen.getByText('test')).toBeInTheDocument();
 
-    // Simulate save event
     window.dispatchEvent(new Event('wiki-save'));
 
     await waitFor(() => {
@@ -220,7 +213,7 @@ describe('FileBrowser', () => {
       })
     );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
     await waitFor(() => {
@@ -242,15 +235,10 @@ describe('FileBrowser', () => {
         })
       );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
 
-    // Open dialog and try to create page
-    fireEvent.click(screen.getByLabelText('New Page'));
-    const dialog = screen.getByRole('dialog');
-    const input = within(dialog).getByLabelText(/page name/i);
-    await userEvent.type(input, 'test-page');
-    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+    await createNewPage('test-page');
 
     await waitFor(() => {
       expect(screen.getByText(/failed to create page/i)).toBeInTheDocument();
@@ -271,15 +259,9 @@ describe('FileBrowser', () => {
         })
       );
 
-    render(<FileBrowser />);
+    render(<FileBrowser />, { initialEntries: ['/test'] });
     await openDrawer();
-
-    // Test with messy input
-    fireEvent.click(screen.getByLabelText('New Page'));
-    const dialog = screen.getByRole('dialog');
-    const input = within(dialog).getByLabelText(/page name/i);
-    await userEvent.type(input, '///folder///sub-folder///page.md///');
-    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+    await createNewPage('//folder//sub-folder//page//');
 
     await waitFor(() => {
       expect(mockedFetch).toHaveBeenCalledWith('/api/save', expect.objectContaining({

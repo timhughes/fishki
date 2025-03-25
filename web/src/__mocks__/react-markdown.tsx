@@ -5,8 +5,15 @@ interface MarkdownProps {
   components?: Record<string, unknown>;
 }
 
-const ReactMarkdown: React.FC<MarkdownProps> = ({ children }) => {
-  return <div data-testid="markdown">{children}</div>;
+const ReactMarkdown: React.FC<MarkdownProps> = ({ children, components }) => {
+  return (
+    <div 
+      data-testid="markdown" 
+      data-components={JSON.stringify(components)}
+    >
+      {children}
+    </div>
+  );
 };
 
 export default ReactMarkdown;
