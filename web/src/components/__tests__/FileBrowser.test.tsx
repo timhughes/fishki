@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../../test-utils/test-utils';
 import FileBrowser from '../FileBrowser';
@@ -43,6 +43,14 @@ describe('FileBrowser', () => {
     mockNavigate.mockClear();
   });
 
+  const openDrawer = async () => {
+    fireEvent.click(screen.getByLabelText('File Browser'));
+    // Wait for drawer transition
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Files' })).toBeInTheDocument();
+    });
+  };
+
   it('should render file tree', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
@@ -52,6 +60,7 @@ describe('FileBrowser', () => {
     );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     await waitFor(() => {
       expect(screen.getByText('folder1')).toBeInTheDocument();
@@ -68,6 +77,7 @@ describe('FileBrowser', () => {
     );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     await waitFor(() => {
       expect(screen.getByText('folder1')).toBeInTheDocument();
@@ -93,6 +103,7 @@ describe('FileBrowser', () => {
     );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     await waitFor(() => {
       expect(screen.getByText('test')).toBeInTheDocument();
@@ -117,17 +128,18 @@ describe('FileBrowser', () => {
       );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     // Open new page dialog
-    const newPageButton = screen.getByRole('button', { name: /new page/i });
-    fireEvent.click(newPageButton);
+    fireEvent.click(screen.getByLabelText('New Page'));
 
     // Fill in page name
-    const input = screen.getByRole('textbox', { name: /page name/i });
+    const dialog = screen.getByRole('dialog');
+    const input = within(dialog).getByLabelText(/page name/i);
     await userEvent.type(input, 'test/new-page');
 
     // Submit form
-    fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
 
     await waitFor(() => {
       expect(mockedFetch).toHaveBeenCalledWith('/api/save', expect.objectContaining({
@@ -151,18 +163,22 @@ describe('FileBrowser', () => {
     );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     // Open dialog
-    fireEvent.click(screen.getByRole('button', { name: /new page/i }));
+    fireEvent.click(screen.getByLabelText('New Page'));
+
+    const dialog = screen.getByRole('dialog');
+    const createButton = within(dialog).getByRole('button', { name: /^create$/i });
 
     // Try to create with empty name
-    fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+    fireEvent.click(createButton);
     expect(screen.getByText(/page name is required/i)).toBeInTheDocument();
 
     // Try invalid characters
-    const input = screen.getByRole('textbox', { name: /page name/i });
+    const input = within(dialog).getByLabelText(/page name/i);
     await userEvent.type(input, '///');
-    fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+    fireEvent.click(createButton);
     expect(screen.getByText(/invalid page name/i)).toBeInTheDocument();
   });
 
@@ -182,6 +198,7 @@ describe('FileBrowser', () => {
       );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     await waitFor(() => {
       expect(screen.getByText('test')).toBeInTheDocument();
@@ -204,6 +221,7 @@ describe('FileBrowser', () => {
     );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load file list/i)).toBeInTheDocument();
@@ -225,12 +243,14 @@ describe('FileBrowser', () => {
       );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     // Open dialog and try to create page
-    fireEvent.click(screen.getByRole('button', { name: /new page/i }));
-    const input = screen.getByRole('textbox', { name: /page name/i });
+    fireEvent.click(screen.getByLabelText('New Page'));
+    const dialog = screen.getByRole('dialog');
+    const input = within(dialog).getByLabelText(/page name/i);
     await userEvent.type(input, 'test-page');
-    fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to create page/i)).toBeInTheDocument();
@@ -252,12 +272,14 @@ describe('FileBrowser', () => {
       );
 
     render(<FileBrowser />);
+    await openDrawer();
 
     // Test with messy input
-    fireEvent.click(screen.getByRole('button', { name: /new page/i }));
-    const input = screen.getByRole('textbox', { name: /page name/i });
+    fireEvent.click(screen.getByLabelText('New Page'));
+    const dialog = screen.getByRole('dialog');
+    const input = within(dialog).getByLabelText(/page name/i);
     await userEvent.type(input, '///folder///sub-folder///page.md///');
-    fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
 
     await waitFor(() => {
       expect(mockedFetch).toHaveBeenCalledWith('/api/save', expect.objectContaining({

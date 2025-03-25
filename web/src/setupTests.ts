@@ -1,10 +1,9 @@
-import React from 'react';
 import '@testing-library/jest-dom';
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
+  value: jest.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
@@ -16,31 +15,23 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-interface MarkdownProps {
-  children: string;
-  components?: Record<string, unknown>;
-}
+// Mock react-markdown to return a simple div with the content
+jest.mock('react-markdown', () => {
+  function MockMarkdown(props: { children: string }) {
+    return `<div data-testid="markdown">${props.children}</div>`;
+  }
+  MockMarkdown.displayName = 'ReactMarkdown';
+  return MockMarkdown;
+});
 
-interface SyntaxHighlighterProps {
-  children: string;
-}
-
-// Transform ESM modules
-jest.mock('react-markdown', () => ({
-  __esModule: true,
-  default: ({ children, components }: MarkdownProps): JSX.Element | null => {
-    if (typeof children === 'string') {
-      return React.createElement('div', { 'data-testid': 'markdown' }, children);
-    }
-    return null;
-  },
-}));
-
+// Mock react-syntax-highlighter
 jest.mock('react-syntax-highlighter', () => ({
-  Prism: ({ children }: SyntaxHighlighterProps): JSX.Element => 
-    React.createElement('pre', null, children),
+  Prism: function MockPrism(props: { children: string }) {
+    return `<pre>${props.children}</pre>`;
+  }
 }));
 
+// Mock syntax highlighter styles
 jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   materialDark: {},
   materialLight: {},
