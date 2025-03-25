@@ -171,11 +171,16 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 			return
 		}
 
-		filePath := filepath.Join(h.config.WikiPath, req.Filename)
-		if err := os.WriteFile(filePath, []byte(req.Content), 0644); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+filePath := filepath.Join(h.config.WikiPath, req.Filename)
+// Create parent directories if they don't exist
+if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+    http.Error(w, "Failed to create directories: "+err.Error(), http.StatusInternalServerError)
+    return
+}
+if err := os.WriteFile(filePath, []byte(req.Content), 0644); err != nil {
+    http.Error(w, err.Error(), http.StatusInternalServerError)
+    return
+}
 
 		w.WriteHeader(http.StatusOK)
 	}

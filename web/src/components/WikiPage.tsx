@@ -5,34 +5,42 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from '@mui/material/styles';
+import { Components } from 'react-markdown';
+import { CodeProps } from 'react-markdown/lib/ast-to-react';
 
-function CodeBlock({ node, inline, className, children, ...props }) {
+const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
   const theme = useTheme();
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : 'text';
 
-  return !inline && match ? (
-    <SyntaxHighlighter
-      style={theme.palette.mode === 'dark' ? materialDark : materialLight}
-      language={language}
-      PreTag="div"
-      children={String(children).replace(/\n$/, '')}
-      {...props}
-    />
-  ) : (
-    <code className={className} {...props}>
+  if (!inline && match) {
+    const content = String(children).replace(/\n$/, '');
+    return (
+      <SyntaxHighlighter
+        style={theme.palette.mode === 'dark' ? materialDark : materialLight}
+        language={language}
+        PreTag="div"
+      >
+        {content}
+      </SyntaxHighlighter>
+    );
+  }
+
+  return (
+    <code className={className}>
       {children}
     </code>
   );
-}
+};
 
-function WikiPage() {
-  const { filename } = useParams();
-  const actualFilename = (filename || 'index') + '.md';
-  const [content, setContent] = useState('');
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+const WikiPage: React.FC = () => {
+  const params = useParams();
+  const filename = params['*'] || params['filename'] || 'index';
+  const actualFilename = filename + '.md';
+  const [content, setContent] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showCreate, setShowCreate] = useState<boolean>(false);
 
   useEffect(() => {
     setLoading(true);
@@ -47,18 +55,42 @@ function WikiPage() {
         }
         return response.text();
       })
-      .then((text) => {
+      .then((text: string) => {
         setContent(text);
         setError(null);
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         setError(err.message);
         setContent('');
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [filename]);
+  }, [filename, actualFilename]);
+
+  const handleCreatePage = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: actualFilename,
+          content: `# ${filename}`,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create page');
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create page');
+    }
+  };
+
+  const components: Components = {
+    code: CodeBlock
+  };
 
   return (
     <Paper sx={{ p: 2, mt: 2 }}>
@@ -71,23 +103,7 @@ function WikiPage() {
             <Button
               color="primary"
               size="small"
-              onClick={() => {
-                fetch('/api/save', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    filename: actualFilename,
-                    content: '# ' + (filename || 'index'),
-                  }),
-                })
-                .then(response => {
-                  if (!response.ok) throw new Error('Failed to create page');
-                  window.location.reload();
-                })
-                .catch(err => setError(err.message));
-              }}
+              onClick={handleCreatePage}
             >
               Create Page
             </Button>
@@ -103,11 +119,7 @@ function WikiPage() {
       )}
       {!loading && !error && content && (
         <div className="markdown-body">
-          <ReactMarkdown
-            components={{
-              code: CodeBlock,
-            }}
-          >
+          <ReactMarkdown components={components}>
             {content}
           </ReactMarkdown>
         </div>
@@ -119,6 +131,6 @@ function WikiPage() {
       )}
     </Paper>
   );
-}
+};
 
 export default WikiPage;

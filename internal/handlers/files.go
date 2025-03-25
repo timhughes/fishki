@@ -93,28 +93,53 @@ func getFileTree(root string) ([]FileInfo, error) {
 }
 
 func buildTree(files []FileInfo) []FileInfo {
-	root := make(map[string]*FileInfo)
-	var result []FileInfo
+    root := make(map[string]*FileInfo)
+    var result []FileInfo
 
-	// First pass: create map of all files/folders
-	for _, file := range files {
-		root[file.Path] = &FileInfo{
-			Name:     file.Name,
-			Type:     file.Type,
-			Path:     file.Path,
-			Children: make([]FileInfo, 0),
-		}
-	}
+    // First pass: ensure all directories exist
+    for _, file := range files {
+        dir := filepath.Dir(file.Path)
+        if dir != "." {
+            parts := strings.Split(dir, string(filepath.Separator))
+            currentPath := ""
+            for _, part := range parts {
+                if currentPath != "" {
+                    currentPath = filepath.Join(currentPath, part)
+                } else {
+                    currentPath = part
+                }
+                
+                if _, exists := root[currentPath]; !exists {
+                    root[currentPath] = &FileInfo{
+                        Name:     part,
+                        Type:     "folder",
+                        Path:     currentPath,
+                        Children: make([]FileInfo, 0),
+                    }
+                }
+            }
+        }
+    }
 
-	// Second pass: build tree structure
-	for _, file := range files {
-		dir := filepath.Dir(file.Path)
-		if dir == "." {
-			result = append(result, *root[file.Path])
-		} else if parent, ok := root[dir]; ok {
-			parent.Children = append(parent.Children, *root[file.Path])
-		}
-	}
+    // Second pass: add all files and folders
+    for _, file := range files {
+        root[file.Path] = &FileInfo{
+            Name:     file.Name,
+            Type:     file.Type,
+            Path:     file.Path,
+            Children: make([]FileInfo, 0),
+        }
+    }
 
-	return result
+    // Third pass: build tree structure
+    for path, info := range root {
+        dir := filepath.Dir(path)
+        if dir == "." {
+            result = append(result, *info)
+        } else if parent, ok := root[dir]; ok {
+            parent.Children = append(parent.Children, *info)
+        }
+    }
+
+    return result
 }

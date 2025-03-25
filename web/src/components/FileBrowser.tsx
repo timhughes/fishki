@@ -26,14 +26,31 @@ import {
   MenuOpen as MenuOpenIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, NavigateFunction } from 'react-router-dom';
 
-function FileTree({ files, level = 0, onSelect }) {
-  const [expandedFolders, setExpandedFolders] = useState(new Set());
-  const navigate = useNavigate();
+interface FileInfo {
+  name: string;
+  type: 'file' | 'folder';
+  path: string;
+  children?: FileInfo[];
+}
+
+interface FileTreeProps {
+  files: FileInfo[];
+  level?: number;
+  onSelect?: () => void;
+}
+
+interface APIResponse {
+  ok: boolean;
+}
+
+const FileTree: React.FC<FileTreeProps> = ({ files, level = 0, onSelect }) => {
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const navigate: NavigateFunction = useNavigate();
   const location = useLocation();
 
-  const toggleFolder = (path) => {
+  const toggleFolder = (path: string): void => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(path)) {
@@ -45,11 +62,11 @@ function FileTree({ files, level = 0, onSelect }) {
     });
   };
 
-  const getPathWithoutExtension = (path) => {
+  const getPathWithoutExtension = (path: string): string => {
     return path.replace(/\.md$/, '');
   };
 
-  const sortFiles = (files) => {
+  const sortFiles = (files: FileInfo[]): FileInfo[] => {
     return [...files].sort((a, b) => {
       // Sort folders before files
       const aIsFolder = a.type === 'folder';
@@ -119,28 +136,29 @@ function FileTree({ files, level = 0, onSelect }) {
       })}
     </List>
   );
-}
+};
 
-function FileBrowser() {
-  const [files, setFiles] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [error, setError] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [newPageDialogOpen, setNewPageDialogOpen] = useState(false);
-  const [newPageName, setNewPageName] = useState('');
-  const [newPageError, setNewPageError] = useState('');
-  const navigate = useNavigate();
+const FileBrowser: React.FC = () => {
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [newPageDialogOpen, setNewPageDialogOpen] = useState<boolean>(false);
+  const [newPageName, setNewPageName] = useState<string>('');
+  const [newPageError, setNewPageError] = useState<string>('');
+  const navigate: NavigateFunction = useNavigate();
 
-  const loadFiles = () => {
-    fetch('/api/files')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load file list');
-        }
-        return response.json();
-      })
-      .then(setFiles)
-      .catch((err) => setError(err.message));
+  const loadFiles = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/files');
+      if (!response.ok) {
+        throw new Error('Failed to load file list');
+      }
+      const data: FileInfo[] = await response.json();
+      setFiles(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
   };
 
   useEffect(() => {
@@ -154,36 +172,50 @@ function FileBrowser() {
     return () => window.removeEventListener('wiki-save', handleSave);
   }, []);
 
-  const handleCreatePage = () => {
+  const handleCreatePage = async (): Promise<void> => {
     if (!newPageName) {
       setNewPageError('Page name is required');
       return;
     }
 
-    const pageName = `${newPageName.trim().replace(/\.md$/, '')}.md`;
+    // Clean and validate the path
+    const cleanPath = newPageName.trim()
+      .replace(/\.md$/, '')  // Remove .md if present
+      .replace(/\/{2,}/g, '/') // Replace multiple slashes with single
+      .replace(/^\/+|\/+$/g, ''); // Remove leading/trailing slashes
+
+    if (!cleanPath) {
+      setNewPageError('Invalid page name');
+      return;
+    }
+
+    const pageName = cleanPath + '.md';
     
-    fetch('/api/save', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        filename: pageName,
-        content: `# ${pageName.replace(/\.md$/, '')}`,
-      }),
-    })
-    .then(response => {
+    try {
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: pageName,
+          content: `# ${cleanPath.split('/').pop()}`,
+        }),
+      });
+
       if (!response.ok) throw new Error('Failed to create page');
+      
       setNewPageDialogOpen(false);
       setNewPageName('');
       setNewPageError('');
       setRefreshTrigger(prev => prev + 1);
-      navigate(`/${pageName.replace(/\.md$/, '')}`);
-    })
-    .catch(err => setNewPageError(err.message));
+      navigate(`/${cleanPath}`);
+    } catch (err) {
+      setNewPageError(err instanceof Error ? err.message : 'Failed to create page');
+    }
   };
 
-  const toggleDrawer = () => {
+  const toggleDrawer = (): void => {
     setIsOpen(!isOpen);
   };
 
@@ -249,7 +281,9 @@ function FileBrowser() {
             value={newPageName}
             onChange={(e) => setNewPageName(e.target.value)}
             error={!!newPageError}
-            placeholder="my-new-page"
+            placeholder="folder/my-new-page"
+            helperText="Use forward slashes (/) to create pages in subdirectories"
+            sx={{ mt: 1 }}
           />
           {newPageError && (
             <Alert severity="error" sx={{ mt: 1 }}>
@@ -264,6 +298,6 @@ function FileBrowser() {
       </Dialog>
     </>
   );
-}
+};
 
 export default FileBrowser;

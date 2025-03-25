@@ -13,14 +13,20 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { NavigateFunction } from 'react-router-dom';
 
-function TopBar({ onToggleTheme, currentTheme }) {
-  const navigate = useNavigate();
+interface TopBarProps {
+  onToggleTheme: () => void;
+  currentTheme: 'light' | 'dark';
+}
+
+const TopBar: React.FC<TopBarProps> = ({ onToggleTheme, currentTheme }) => {
+  const navigate: NavigateFunction = useNavigate();
   const location = useLocation();
-  const isEditing = location.pathname.endsWith('/edit');
-  const path = location.pathname.replace('/edit', '');
+  const isEditing: boolean = location.pathname.endsWith('/edit');
+  const path: string = location.pathname.replace('/edit', '');
 
-  const handleEditClick = () => {
+  const handleEditClick = (): void => {
     if (isEditing) {
       navigate(path);
     } else {
@@ -58,6 +64,6 @@ function TopBar({ onToggleTheme, currentTheme }) {
       </Toolbar>
     </AppBar>
   );
-}
+};
 
 export default TopBar;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, NavigateFunction } from 'react-router-dom';
 import { 
   Paper, 
   TextField, 
@@ -22,39 +22,57 @@ import SplitscreenIcon from '@mui/icons-material/Splitscreen';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, Theme } from '@mui/material/styles';
+import { CodeProps } from 'react-markdown/lib/ast-to-react';
 
-function CodeBlock({ node, inline, className, children, ...props }) {
+type URLParams = Record<string, string | undefined>;
+
+type ViewMode = 'edit' | 'preview' | 'split';
+
+interface SaveResponse {
+  ok: boolean;
+}
+
+interface CommitResponse {
+  ok: boolean;
+}
+
+const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
   const theme = useTheme();
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : 'text';
 
-  return !inline && match ? (
-    <SyntaxHighlighter
-      style={theme.palette.mode === 'dark' ? materialDark : materialLight}
-      language={language}
-      PreTag="div"
-      children={String(children).replace(/\n$/, '')}
-      {...props}
-    />
-  ) : (
-    <code className={className} {...props}>
+  if (!inline && match) {
+    const content = String(children).replace(/\n$/, '');
+    return (
+      <SyntaxHighlighter
+        style={theme.palette.mode === 'dark' ? materialDark : materialLight}
+        language={language}
+        PreTag="div"
+      >
+        {content}
+      </SyntaxHighlighter>
+    );
+  }
+
+  return (
+    <code className={className}>
       {children}
     </code>
   );
-}
+};
 
-function Editor() {
-  const { filename } = useParams();
+const Editor: React.FC = () => {
+  const { filename } = useParams<URLParams>();
   const actualFilename = (filename || 'index') + '.md';
-  const navigate = useNavigate();
-  const [content, setContent] = useState('');
-  const [error, setError] = useState(null);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [commitMessage, setCommitMessage] = useState('');
-  const [viewMode, setViewMode] = useState('edit'); // 'edit', 'preview', or 'split'
+  const navigate: NavigateFunction = useNavigate();
+  const [content, setContent] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [commitMessage, setCommitMessage] = useState<string>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('edit');
 
   useEffect(() => {
     setLoading(true);
@@ -65,15 +83,15 @@ function Editor() {
         }
         return response.text();
       })
-      .then((text) => {
+      .then((text: string) => {
         setContent(text);
         setError(null);
       })
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [filename]);
+  }, [filename, actualFilename]);
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     setSaving(true);
     try {
       // Save the file
@@ -102,16 +120,16 @@ function Editor() {
       window.dispatchEvent(new Event('wiki-save'));
 
       // Navigate back to view mode
-      navigate(`/${filename.replace(/\.md$/, '')}`);
+      navigate(`/${(filename || 'index').replace(/\.md$/, '')}`);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
       setShowSaveDialog(false);
     }
   };
 
-  const handleViewModeChange = (event, newMode) => {
+  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null): void => {
     if (newMode !== null) {
       setViewMode(newMode);
     }
@@ -223,6 +241,6 @@ function Editor() {
       </Dialog>
     </>
   );
-}
+};
 
 export default Editor;

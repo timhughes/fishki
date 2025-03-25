@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider, createTheme, Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -11,11 +11,13 @@ import FileBrowser from './components/FileBrowser';
 import WikiPage from './components/WikiPage';
 import Editor from './components/Editor';
 
-function App() {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  const [mode, setMode] = useState(prefersDarkMode ? 'dark' : 'light');
+type ThemeMode = 'light' | 'dark';
 
-  const theme = useMemo(
+const App: React.FC = () => {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const [mode, setMode] = useState<ThemeMode>(prefersDarkMode ? 'dark' : 'light');
+
+  const theme: Theme = useMemo(
     () =>
       createTheme({
         palette: {
@@ -35,7 +37,7 @@ function App() {
     [mode]
   );
 
-  const toggleColorMode = () => {
+  const toggleColorMode = (): void => {
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
   };
 
@@ -66,6 +68,6 @@ function App() {
       </Router>
     </ThemeProvider>
   );
-}
+};
 
 export default App;
