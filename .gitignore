@@ -26,3 +26,4 @@ go.work.sum
 web/node_modules/
 web/build/
 fishki-server
+web/coverage

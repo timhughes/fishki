@@ -1,0 +1,216 @@
+import React from 'react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render } from '../../test-utils/test-utils';
+import Editor from '../Editor';
+
+// Mock fetch globally
+const mockedFetch = jest.fn();
+global.fetch = mockedFetch;
+
+// Mock window.dispatchEvent
+const mockDispatchEvent = jest.fn();
+window.dispatchEvent = mockDispatchEvent;
+
+// Mock useNavigate
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
+describe('Editor', () => {
+  beforeEach(() => {
+    mockedFetch.mockClear();
+    mockNavigate.mockClear();
+    mockDispatchEvent.mockClear();
+  });
+
+  it('should show loading state initially', () => {
+    mockedFetch.mockImplementationOnce(() => new Promise(() => {}));
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should load content successfully', async () => {
+    const content = '# Test Content';
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve(content),
+      })
+    );
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue(content);
+    });
+  });
+
+  it('should switch between view modes', async () => {
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Test Content'),
+      })
+    );
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    // Wait for content to load
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Test preview mode
+    fireEvent.click(screen.getByRole('button', { name: /preview/i }));
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
+
+    // Test split mode
+    fireEvent.click(screen.getByRole('button', { name: /split/i }));
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
+
+    // Back to edit mode
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.queryByText('Test Content', { selector: 'h1' })).not.toBeInTheDocument();
+  });
+
+  it('should handle save functionality', async () => {
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Initial Content'),
+      })
+    );
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Edit content
+    const editor = screen.getByRole('textbox');
+    await userEvent.clear(editor);
+    await userEvent.type(editor, '# New Content');
+
+    // Click save button
+    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
+
+    // Check if commit dialog appears
+    expect(screen.getByText(/commit message/i)).toBeInTheDocument();
+
+    // Mock save and commit responses
+    mockedFetch
+      .mockImplementationOnce(() => Promise.resolve({ ok: true }))  // save response
+      .mockImplementationOnce(() => Promise.resolve({ ok: true })); // commit response
+
+    // Enter commit message and save
+    const commitInput = screen.getByLabelText(/commit message/i);
+    await userEvent.type(commitInput, 'Test commit');
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      // Verify API calls
+      expect(mockedFetch).toHaveBeenCalledTimes(3);
+      expect(mockedFetch.mock.calls[1][1].body).toEqual(
+        JSON.stringify({
+          filename: 'test.md',
+          content: '# New Content',
+        })
+      );
+      expect(mockedFetch.mock.calls[2][1].body).toEqual(
+        JSON.stringify({
+          message: 'Test commit',
+        })
+      );
+    });
+
+    // Verify navigation and event dispatch
+    expect(mockNavigate).toHaveBeenCalledWith('/test');
+    expect(mockDispatchEvent).toHaveBeenCalledWith(expect.any(Event));
+    expect(mockDispatchEvent.mock.calls[0][0].type).toBe('wiki-save');
+  });
+
+  it('should handle save errors', async () => {
+    mockedFetch
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Content'),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: false,
+      }));
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Try to save
+    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
+    const commitInput = screen.getByLabelText(/commit message/i);
+    await userEvent.type(commitInput, 'Test commit');
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should update preview in real-time in split mode', async () => {
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Initial'),
+      })
+    );
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Switch to split mode
+    fireEvent.click(screen.getByRole('button', { name: /split/i }));
+
+    // Edit content
+    const editor = screen.getByRole('textbox');
+    await userEvent.clear(editor);
+    await userEvent.type(editor, '# New Title');
+
+    // Check if preview updates
+    expect(screen.getByText('New Title')).toBeInTheDocument();
+  });
+
+  it('should use default commit message if none provided', async () => {
+    mockedFetch
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Content'),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({ ok: true }))
+      .mockImplementationOnce(() => Promise.resolve({ ok: true }));
+
+    render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Save without commit message
+    fireEvent.click(screen.getByRole('button', { name: /save$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      const commitCall = mockedFetch.mock.calls[2][1].body;
+      expect(JSON.parse(commitCall).message).toContain('Updated test.md');
+    });
+  });
+});
