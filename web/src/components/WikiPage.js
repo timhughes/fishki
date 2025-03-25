@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Paper, Typography, Alert, LinearProgress } from '@mui/material';
+import { Paper, Typography, Alert, LinearProgress, Button } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -31,6 +31,7 @@ function WikiPage() {
   const [content, setContent] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -38,7 +39,8 @@ function WikiPage() {
       .then((response) => {
         if (!response.ok) {
           if (response.status === 404) {
-            throw new Error('This page does not exist yet. Click Edit to create it.');
+            setShowCreate(true);
+            throw new Error('This page does not exist.');
           }
           throw new Error('Failed to load page');
         }
@@ -60,8 +62,41 @@ function WikiPage() {
   return (
     <Paper sx={{ p: 2, mt: 2 }}>
       {loading && <LinearProgress />}
-      {error && (
-        <Alert severity="info" sx={{ mt: 2 }}>
+      {error && showCreate && (
+        <Alert 
+          severity="info" 
+          sx={{ mt: 2 }}
+          action={
+            <Button
+              color="primary"
+              size="small"
+              onClick={() => {
+                fetch('/api/save', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    filename: filename,
+                    content: '# ' + filename.replace(/\.md$/, ''),
+                  }),
+                })
+                .then(response => {
+                  if (!response.ok) throw new Error('Failed to create page');
+                  window.location.reload();
+                })
+                .catch(err => setError(err.message));
+              }}
+            >
+              Create Page
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
+      {error && !showCreate && (
+        <Alert severity="error" sx={{ mt: 2 }}>
           {error}
         </Alert>
       )}

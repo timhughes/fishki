@@ -1,11 +1,12 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"runtime"
+"encoding/json"
+"fmt"
+"log"
+"os"
+"path/filepath"
+"runtime"
 )
 
 type Config struct {
@@ -13,48 +14,58 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	configPath, err := getConfigPath()
-	if err != nil {
-		return nil, err
-	}
+    configPath, err := getConfigPath()
+    if err != nil {
+        return nil, fmt.Errorf("failed to get config path: %v", err)
+    }
+    log.Printf("Loading config from: %s", configPath)
 
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		// If the file doesn't exist, create a default config
-		if os.IsNotExist(err) {
-			cfg := &Config{WikiPath: ""}
-			if err := SaveConfig(cfg); err != nil {
-				return nil, err
-			}
-			return cfg, nil
-		}
-		return nil, err
-	}
+    data, err := os.ReadFile(configPath)
+    if err != nil {
+        // If the file doesn't exist, create a default config
+        if os.IsNotExist(err) {
+            log.Printf("Config file not found, creating default config")
+            cfg := &Config{WikiPath: ""}
+            if err := SaveConfig(cfg); err != nil {
+                return nil, fmt.Errorf("failed to save default config: %v", err)
+            }
+            log.Printf("Created default config: %+v", cfg)
+            return cfg, nil
+        }
+        return nil, fmt.Errorf("failed to read config file: %v", err)
+    }
 
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
-	}
+    var cfg Config
+    if err := json.Unmarshal(data, &cfg); err != nil {
+        return nil, fmt.Errorf("failed to parse config file: %v", err)
+    }
 
-	return &cfg, nil
+    log.Printf("Loaded config: %+v", cfg)
+    return &cfg, nil
 }
 
 func SaveConfig(cfg *Config) error {
-	configPath, err := getConfigPath()
-	if err != nil {
-		return err
-	}
+    configPath, err := getConfigPath()
+    if err != nil {
+        return fmt.Errorf("failed to get config path: %v", err)
+    }
+    log.Printf("Saving config to: %s", configPath)
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return err
-	}
+    data, err := json.MarshalIndent(cfg, "", "  ")
+    if err != nil {
+        return fmt.Errorf("failed to marshal config: %v", err)
+    }
 
-	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
-		return err
-	}
+    if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+        return fmt.Errorf("failed to create config directory: %v", err)
+    }
 
-	return os.WriteFile(configPath, data, 0644)
+    if err := os.WriteFile(configPath, data, 0644); err != nil {
+        return fmt.Errorf("failed to write config file: %v", err)
+    }
+
+    log.Printf("Saved config: %+v", cfg)
+    return nil
 }
 
 func getConfigPath() (string, error) {
