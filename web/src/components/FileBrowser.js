@@ -9,14 +9,22 @@ import {
   Typography,
   Box,
   Tooltip,
-  Divider
+  Divider,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert
 } from '@mui/material';
 import {
   Description as FileIcon,
   Folder as FolderIcon,
   ChevronRight as ChevronRightIcon,
   ExpandMore as ExpandMoreIcon,
-  MenuOpen as MenuOpenIcon
+  MenuOpen as MenuOpenIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -68,7 +76,7 @@ function FileTree({ files, level = 0, onSelect }) {
                 if (isFolder) {
                   toggleFolder(file.path);
                 } else {
-                  navigate(`/${getPathWithoutExtension(file.path)}`);
+                  navigate(`/${file.path.replace(/\.md$/, '')}`);
                   if (onSelect) onSelect();
                 }
               }}
@@ -117,8 +125,13 @@ function FileBrowser() {
   const [files, setFiles] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [newPageDialogOpen, setNewPageDialogOpen] = useState(false);
+  const [newPageName, setNewPageName] = useState('');
+  const [newPageError, setNewPageError] = useState('');
+  const navigate = useNavigate();
 
-  useEffect(() => {
+  const loadFiles = () => {
     fetch('/api/files')
       .then((response) => {
         if (!response.ok) {
@@ -128,7 +141,47 @@ function FileBrowser() {
       })
       .then(setFiles)
       .catch((err) => setError(err.message));
+  };
+
+  useEffect(() => {
+    loadFiles();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    // Listen for save events
+    const handleSave = () => setRefreshTrigger(prev => prev + 1);
+    window.addEventListener('wiki-save', handleSave);
+    return () => window.removeEventListener('wiki-save', handleSave);
   }, []);
+
+  const handleCreatePage = () => {
+    if (!newPageName) {
+      setNewPageError('Page name is required');
+      return;
+    }
+
+    const pageName = `${newPageName.trim().replace(/\.md$/, '')}.md`;
+    
+    fetch('/api/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filename: pageName,
+        content: `# ${pageName.replace(/\.md$/, '')}`,
+      }),
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to create page');
+      setNewPageDialogOpen(false);
+      setNewPageName('');
+      setNewPageError('');
+      setRefreshTrigger(prev => prev + 1);
+      navigate(`/${pageName.replace(/\.md$/, '')}`);
+    })
+    .catch(err => setNewPageError(err.message));
+  };
 
   const toggleDrawer = () => {
     setIsOpen(!isOpen);
@@ -168,8 +221,13 @@ function FileBrowser() {
           },
         }}
       >
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6">Files</Typography>
+          <Tooltip title="New Page">
+            <IconButton onClick={() => setNewPageDialogOpen(true)}>
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
         <Divider />
         {error ? (
@@ -180,6 +238,30 @@ function FileBrowser() {
           <FileTree files={files} onSelect={() => setIsOpen(false)} />
         )}
       </Drawer>
+      <Dialog open={newPageDialogOpen} onClose={() => setNewPageDialogOpen(false)}>
+        <DialogTitle>Create New Page</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Page Name"
+            fullWidth
+            value={newPageName}
+            onChange={(e) => setNewPageName(e.target.value)}
+            error={!!newPageError}
+            placeholder="my-new-page"
+          />
+          {newPageError && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {newPageError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewPageDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreatePage} variant="contained">Create</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

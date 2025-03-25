@@ -45,7 +45,8 @@ function CodeBlock({ node, inline, className, children, ...props }) {
 }
 
 function Editor() {
-  const { filename = 'index.md' } = useParams();
+  const { filename } = useParams();
+  const actualFilename = (filename || 'index') + '.md';
   const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [error, setError] = useState(null);
@@ -57,7 +58,7 @@ function Editor() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/load?filename=${filename}`)
+    fetch(`/api/load?filename=${actualFilename}`)
       .then((response) => {
         if (!response.ok && response.status !== 404) {
           throw new Error('Failed to load page');
@@ -79,7 +80,7 @@ function Editor() {
       const saveResponse = await fetch('/api/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, content }),
+        body: JSON.stringify({ filename: actualFilename, content }),
       });
 
       if (!saveResponse.ok) {
@@ -90,15 +91,18 @@ function Editor() {
       const commitResponse = await fetch('/api/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: commitMessage || `Updated ${filename}` }),
+        body: JSON.stringify({ message: commitMessage || `Updated ${actualFilename}` }),
       });
 
       if (!commitResponse.ok) {
         throw new Error('Failed to commit changes');
       }
 
+      // Dispatch wiki-save event
+      window.dispatchEvent(new Event('wiki-save'));
+
       // Navigate back to view mode
-      navigate(`/${filename === 'index.md' ? '' : filename}`);
+      navigate(`/${filename.replace(/\.md$/, '')}`);
     } catch (err) {
       setError(err.message);
     } finally {

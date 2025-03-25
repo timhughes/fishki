@@ -27,7 +27,8 @@ function CodeBlock({ node, inline, className, children, ...props }) {
 }
 
 function WikiPage() {
-  const { filename = 'index.md' } = useParams();
+  const { filename } = useParams();
+  const actualFilename = (filename || 'index') + '.md';
   const [content, setContent] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ function WikiPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/load?filename=${filename}`)
+    fetch(`/api/load?filename=${actualFilename}`)
       .then((response) => {
         if (!response.ok) {
           if (response.status === 404) {
@@ -77,8 +78,8 @@ function WikiPage() {
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    filename: filename,
-                    content: '# ' + filename.replace(/\.md$/, ''),
+                    filename: actualFilename,
+                    content: '# ' + (filename || 'index'),
                   }),
                 })
                 .then(response => {
