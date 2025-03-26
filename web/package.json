@@ -29,7 +29,7 @@
     "start": "react-scripts start",
     "build": "GENERATE_SOURCEMAP=true react-scripts build",
     "build:dev": "GENERATE_SOURCEMAP=true NODE_ENV=development react-scripts build",
-    "test": "react-scripts test --watchAll=false --coverage --passWithNoTests",
+    "test": "react-scripts test --watchAll=false --coverage --passWithNoTests --bail",
     "test:watch": "react-scripts test --coverage --watchAll",
     "test:coverage": "react-scripts test --watchAll=false --coverage --passWithNoTests",
     "release": "npm run test && GENERATE_SOURCEMAP=false NODE_ENV=production react-scripts build",
