@@ -27,7 +27,7 @@ func TestMockGitClient(t *testing.T) {
 			t.Error("expected HasRemote to be true by default")
 		}
 		clean, err := mock.Status("")
-		if !clean || err != nil {
+		if clean != "" || err != nil {
 			t.Error("expected Status to be clean with no error by default")
 		}
 	})
@@ -35,7 +35,7 @@ func TestMockGitClient(t *testing.T) {
 	t.Run("Commit Tracking", func(t *testing.T) {
 		path := "/test/path"
 		message := "test commit"
-		mock.CommitError = errors.New("commit error")
+		mock.CommitError = &ErrGitOperation{Op: "commit", Err: &ErrNotRepository{Path: "/test/path"}}
 
 		err := mock.Commit(path, message)
 		if err != mock.CommitError {
@@ -53,7 +53,7 @@ func TestMockGitClient(t *testing.T) {
 	})
 
 	t.Run("Pull Tracking", func(t *testing.T) {
-		mock.PullError = errors.New("pull error")
+		mock.PullError = &ErrGitOperation{Op: "pull", Err: &ErrNoRemote{Path: "/test/path"}}
 		err := mock.Pull("")
 		if err != mock.PullError {
 			t.Errorf("expected error %v, got %v", mock.PullError, err)

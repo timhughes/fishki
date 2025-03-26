@@ -1,7 +1,6 @@
 package git
 
 import (
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,16 +14,13 @@ type GitClient interface {
 	Push(repoPath string) error
 	Pull(repoPath string) error
 	Status(repoPath string) (string, error)
+	IsRepository(path string) bool
+	HasRemote(path string) bool
 }
 
 // DefaultGitClient is the default implementation of GitClient
 type DefaultGitClient struct{}
 
-// Custom error types
-var (
-	ErrNotARepo = errors.New("not a git repository")
-	ErrNoRemote = errors.New("no remote repository configured")
-)
 
 // New creates a new DefaultGitClient
 func New() GitClient {
@@ -75,11 +71,11 @@ func (c *DefaultGitClient) Commit(repoPath, message string) error {
 	if err != nil {
 		return err
 	}
-	if clean {
+	if len(clean) == 0 {
 		return nil // Nothing to commit
 	}
 
-	// Commit changes
+	// Commit changes.
 	cmd = exec.Command("git", "commit", "-m", message)
 	cmd.Dir = repoPath
 	out, err = cmd.CombinedOutput()
@@ -103,7 +99,7 @@ func (c *DefaultGitClient) Pull(repoPath string) error {
 	if err != nil {
 		return err
 	}
-	if !clean {
+	if len(clean) > 0 {
 		return &ErrUncleanWorkingDir{Path: repoPath}
 	}
 
@@ -130,7 +126,7 @@ func (c *DefaultGitClient) Push(repoPath string) error {
 	if err != nil {
 		return err
 	}
-	if !clean {
+	if len(clean) > 0 {
 		return &ErrUncleanWorkingDir{Path: repoPath}
 	}
 
@@ -145,7 +141,7 @@ func (c *DefaultGitClient) Push(repoPath string) error {
 
 func (c *DefaultGitClient) Status(repoPath string) (string, error) {
 	if !c.IsRepository(repoPath) {
-		return "", ErrNotARepo
+		return "", &ErrNotRepository{Path: repoPath}
 	}
 
 	cmd := exec.Command("git", "status", "--porcelain")

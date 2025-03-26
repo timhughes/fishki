@@ -20,13 +20,13 @@ func (e *ErrUncleanWorkingDir) Error() string {
 	return fmt.Sprintf("working directory not clean: %s", e.Path)
 }
 
-// ErrNoRemote indicates that the repository has no remote configured
+// ErrNoRemote represents an error when a path has no remote repository configured
 type ErrNoRemote struct {
 	Path string
 }
 
 func (e *ErrNoRemote) Error() string {
-	return fmt.Sprintf("no remote configured: %s", e.Path)
+	return fmt.Sprintf("no remote repository configured: %s", e.Path)
 }
 
 // ErrGitOperation wraps git command errors

@@ -2,26 +2,26 @@ package git
 
 // MockGitClient implements GitClient for testing
 type MockGitClient struct {
-	IsRepoValue    bool
-	HasRemoteValue bool
-	StatusValue    bool
-	StatusError    error
-	InitError      error
-	CommitError    error
-	PullError      error
-	PushError      error
 	CommitCalled   bool
-	PullCalled     bool
-	PushCalled     bool
-	LastCommitPath string
+	CommitError    error
+	HasRemoteValue bool
+	InitError      error
+	IsRepoValue    bool
 	LastCommitMsg  string
+	LastCommitPath string
+	PullCalled     bool
+	PullError      error
+	PushCalled     bool
+	PushError      error
+	StatusError    error
+	StatusValue    string
 }
 
 func NewMockGitClient() *MockGitClient {
 	return &MockGitClient{
 		IsRepoValue:    true,
 		HasRemoteValue: true,
-		StatusValue:    true,
+		StatusValue:    "",
 	}
 }
 
@@ -33,7 +33,7 @@ func (m *MockGitClient) HasRemote(path string) bool {
 	return m.HasRemoteValue
 }
 
-func (m *MockGitClient) Status(path string) (bool, error) {
+func (m *MockGitClient) Status(path string) (string, error) {
 	return m.StatusValue, m.StatusError
 }
 
