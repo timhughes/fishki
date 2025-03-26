@@ -113,14 +113,31 @@ PORT=3001 go run ./cmd/fishki-server
 
 Run all Go tests:
 ```bash
+# Run all tests
 go test ./...
+
+# Run tests and stop on first failure (useful for debugging)
+go test -failfast ./...
+
+# Run specific test by name (useful for debugging individual tests)
+go test ./... -run TestSpecificFunction
+
+# Run tests matching a pattern
+go test ./... -run 'Test.*Save.*'
 ```
 
 Run specific package tests:
 ```bash
+# Run tests for specific packages
 go test ./internal/git
 go test ./internal/markdown
 go test ./internal/handlers
+
+# Run with fail-fast option
+go test -failfast ./internal/git
+
+# Run specific test in a package with fail-fast
+go test -failfast ./internal/git -run TestGitSave
 ```
 
 Generate coverage report:
@@ -134,13 +151,37 @@ go tool cover -html=coverage.out
 Run React component tests:
 ```bash
 cd web
+
+# Run all tests
 npm test
+
+# Run tests and stop on first failure
+npm run test:bail
+
+# Run tests with detailed output (useful for debugging)
+npm run test:debug
+
+# Run specific test file
+npm run test:file WikiPage.test.tsx
+
+# Run tests matching a pattern
+npm run test:pattern "should handle save"
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
 ```
 
-Run tests with coverage:
-```bash
-npm test -- --coverage
-```
+Test Script Reference:
+- `test`: Run all tests once
+- `test:bail`: Run tests and stop on first failure
+- `test:debug`: Run tests with verbose output for debugging
+- `test:file`: Run a specific test file with fail-fast enabled
+- `test:pattern`: Run tests matching a specific pattern
+- `test:watch`: Run tests in watch mode with coverage
+- `test:coverage`: Generate a coverage report
 
 ## Configuration
 

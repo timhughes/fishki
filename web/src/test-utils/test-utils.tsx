@@ -1,5 +1,5 @@
-import React from 'react';
-import { render, RenderOptions, act } from '@testing-library/react';
+import React, { act } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
