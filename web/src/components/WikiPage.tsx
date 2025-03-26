@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useFetchContent from '../hooks/useFetchContent';
+import MarkdownRenderer from './MarkdownRenderer';
+import LoadingError from './LoadingError';
 import CodeBlock from './CodeBlock';
 import { useParams } from 'react-router-dom';
 import { Paper, Typography, Alert, LinearProgress, Button } from '@mui/material';
@@ -14,36 +17,9 @@ const WikiPage: React.FC = () => {
   const params = useParams();
   const filename = params['*'] || params['filename'] || 'index';
   const actualFilename = filename + '.md';
-  const [content, setContent] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { content, error: fetchError, loading } = useFetchContent(actualFilename);
+  const [error, setError] = useState<string | null>(fetchError);
   const [showCreate, setShowCreate] = useState<boolean>(false);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/load?filename=${actualFilename}`)
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 404) {
-            setShowCreate(true);
-            throw new Error('This page does not exist.');
-          }
-          throw new Error('Failed to load page');
-        }
-        return response.text();
-      })
-      .then((text: string) => {
-        setContent(text);
-        setError(null);
-      })
-      .catch((err: Error) => {
-        setError(err.message);
-        setContent('');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [filename, actualFilename]);
 
   const handleCreatePage = async (): Promise<void> => {
     try {
@@ -71,34 +47,10 @@ const WikiPage: React.FC = () => {
 
   return (
     <Paper sx={{ p: 2, mt: 2 }}>
-      {loading && <LinearProgress />}
-      {error && showCreate && (
-        <Alert 
-          severity="info" 
-          sx={{ mt: 2 }}
-          action={
-            <Button
-              color="primary"
-              size="small"
-              onClick={handleCreatePage}
-            >
-              Create Page
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      )}
-      {error && !showCreate && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <LoadingError loading={loading} error={error} />
       {!loading && !error && content && (
         <div className="markdown-body">
-          <ReactMarkdown components={components}>
-            {content}
-          </ReactMarkdown>
+          <MarkdownRenderer content={content} />
         </div>
       )}
       {!loading && !error && !content && (

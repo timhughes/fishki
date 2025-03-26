@@ -46,7 +46,8 @@ const Editor: React.FC = () => {
   const { filename } = useParams<URLParams>();
   const actualFilename = (filename || 'index') + '.md';
   const navigate: NavigateFunction = useNavigate();
-  const { content, error, loading } = useFetchContent(actualFilename);
+  const { content: fetchedContent, error, loading } = useFetchContent(actualFilename);
+  const [content, setContent] = useState<string>(fetchedContent);
   const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [commitMessage, setCommitMessage] = useState<string>('');
