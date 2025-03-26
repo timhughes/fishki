@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useFetchContent from '../hooks/useFetchContent';
+import MarkdownRenderer from './MarkdownRenderer';
+import LoadingError from './LoadingError';
+import CodeBlock from './CodeBlock';
 import { useParams, useNavigate, NavigateFunction } from 'react-router-dom';
 import { 
   Paper, 
@@ -37,59 +41,16 @@ interface CommitResponse {
   ok: boolean;
 }
 
-const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
-  const theme = useTheme();
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : 'text';
-
-  if (!inline && match) {
-    const content = String(children).replace(/\n$/, '');
-    return (
-      <SyntaxHighlighter
-        style={theme.palette.mode === 'dark' ? materialDark : materialLight}
-        language={language}
-        PreTag="div"
-      >
-        {content}
-      </SyntaxHighlighter>
-    );
-  }
-
-  return (
-    <code className={className}>
-      {children}
-    </code>
-  );
-};
 
 const Editor: React.FC = () => {
   const { filename } = useParams<URLParams>();
   const actualFilename = (filename || 'index') + '.md';
   const navigate: NavigateFunction = useNavigate();
-  const [content, setContent] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const { content, error, loading } = useFetchContent(actualFilename);
   const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [commitMessage, setCommitMessage] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/load?filename=${actualFilename}`)
-      .then((response) => {
-        if (!response.ok && response.status !== 404) {
-          throw new Error('Failed to load page');
-        }
-        return response.text();
-      })
-      .then((text: string) => {
-        setContent(text);
-        setError(null);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [filename, actualFilename]);
 
   const handleSave = async (): Promise<void> => {
     setSaving(true);
@@ -122,7 +83,6 @@ const Editor: React.FC = () => {
       // Navigate back to view mode
       navigate(`/${(filename || 'index').replace(/\.md$/, '')}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
       setShowSaveDialog(false);
@@ -135,13 +95,6 @@ const Editor: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Paper sx={{ p: 2, mt: 2 }}>
-        <LinearProgress />
-      </Paper>
-    );
-  }
 
   const editorContent = (
     <TextField
@@ -191,19 +144,24 @@ const Editor: React.FC = () => {
           </ToggleButtonGroup>
         </Box>
 
-        {viewMode === 'split' ? (
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              {editorContent}
-            </Grid>
-            <Grid item xs={6}>
-              {previewContent}
-            </Grid>
-          </Grid>
-        ) : viewMode === 'preview' ? (
-          previewContent
-        ) : (
-          editorContent
+        <LoadingError loading={loading} error={error} />
+        {!loading && !error && (
+          <>
+            {viewMode === 'split' ? (
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  {editorContent}
+                </Grid>
+                <Grid item xs={6}>
+                  <MarkdownRenderer content={content} />
+                </Grid>
+              </Grid>
+            ) : viewMode === 'preview' ? (
+              <MarkdownRenderer content={content} />
+            ) : (
+              editorContent
+            )}
+          </>
         )}
 
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>

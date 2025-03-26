@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CodeBlock from './CodeBlock';
 import { useParams } from 'react-router-dom';
 import { Paper, Typography, Alert, LinearProgress, Button } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
@@ -8,30 +9,6 @@ import { useTheme } from '@mui/material/styles';
 import { Components } from 'react-markdown';
 import { CodeProps } from 'react-markdown/lib/ast-to-react';
 
-const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
-  const theme = useTheme();
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : 'text';
-
-  if (!inline && match) {
-    const content = String(children).replace(/\n$/, '');
-    return (
-      <SyntaxHighlighter
-        style={theme.palette.mode === 'dark' ? materialDark : materialLight}
-        language={language}
-        PreTag="div"
-      >
-        {content}
-      </SyntaxHighlighter>
-    );
-  }
-
-  return (
-    <code className={className}>
-      {children}
-    </code>
-  );
-};
 
 const WikiPage: React.FC = () => {
   const params = useParams();
