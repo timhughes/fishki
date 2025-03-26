@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
+import ErrorBoundary from './components/ErrorBoundary';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import TopBar from './components/TopBar';
@@ -44,7 +45,8 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
+      <ErrorBoundary>
+        <Router>
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <TopBar onToggleTheme={toggleColorMode} currentTheme={mode} />
           <FileBrowser />
@@ -65,7 +67,8 @@ const App: React.FC = () => {
             </Routes>
           </Box>
         </Box>
-      </Router>
+        </Router>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 };

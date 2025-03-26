@@ -15,13 +15,29 @@ export class ApiRequestError extends Error implements ApiErrorType {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      message: 'An unknown error occurred'
-    }));
-    throw new ApiRequestError(error.message, error.code);
+    let errorMessage: string;
+    try {
+      const error = await response.json();
+      errorMessage = error.message || 'An unknown error occurred';
+    } catch {
+      errorMessage = await response.text();
+    }
+    throw new ApiRequestError(errorMessage);
   }
+
+  const contentType = response.headers.get('content-type');
   
-  return response.json();
+  if (contentType?.includes('application/json')) {
+    return response.json();
+  }
+
+  // For text responses, wrap in the expected interface
+  const text = await response.text();
+  if (typeof text === 'string' && response.headers.get('content-type')?.includes('text/plain')) {
+    return { content: text } as T;
+  }
+
+  throw new ApiRequestError('Unexpected response format');
 }
 
 export async function saveFile(operation: FileOperation, signal?: AbortSignal): Promise<void> {
@@ -41,10 +57,14 @@ export async function loadFile(filename: string, signal?: AbortSignal): Promise<
   return data.content;
 }
 
+interface FileListResponse {
+  files: FileInfo[];
+}
+
 export async function listFiles(): Promise<FileInfo[]> {
   const response = await fetch('/api/files');
-  const data = await handleResponse<FileInfo[]>(response);
-  return data;
+  const data = await handleResponse<FileListResponse>(response);
+  return data.files;
 }
 
 export function createAbortController(): AbortController {

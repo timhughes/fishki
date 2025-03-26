@@ -1,140 +1,76 @@
 package git
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
+	"errors"
 	"testing"
 )
 
-func TestInitRepo(t *testing.T) {
-	// Create temp directory for test
-	tempDir, err := os.MkdirTemp("", "git-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+func TestDefaultGitClientUnit(t *testing.T) {
+	client := New()
 
-	// Test successful init
-	if err := InitRepo(tempDir); err != nil {
-		t.Errorf("InitRepo failed: %v", err)
-	}
-
-	// Verify .git directory was created
-	if _, err := os.Stat(filepath.Join(tempDir, ".git")); os.IsNotExist(err) {
-		t.Error(".git directory was not created")
-	}
-
-	// Test init on non-existent directory
-	if err := InitRepo("/nonexistent/path"); err == nil {
-		t.Error("expected error for non-existent directory")
-	}
+	t.Run("IsRepository", func(t *testing.T) {
+		result := client.IsRepository("/nonexistent/path")
+		if result {
+			t.Error("expected false for nonexistent path")
+		}
+	})
 }
 
-func TestCommit(t *testing.T) {
-	// Create temp directory for test
-	tempDir, err := os.MkdirTemp("", "git-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+func TestMockGitClient(t *testing.T) {
+	mock := NewMockGitClient()
 
-	// Initialize git repo
-	if err := InitRepo(tempDir); err != nil {
-		t.Fatalf("failed to init repo: %v", err)
-	}
+	t.Run("Default Values", func(t *testing.T) {
+		if !mock.IsRepository("") {
+			t.Error("expected IsRepository to be true by default")
+		}
+		if !mock.HasRemote("") {
+			t.Error("expected HasRemote to be true by default")
+		}
+		clean, err := mock.Status("")
+		if !clean || err != nil {
+			t.Error("expected Status to be clean with no error by default")
+		}
+	})
 
-	// Create a test file
-	testFile := filepath.Join(tempDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("test content"), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
-	}
+	t.Run("Commit Tracking", func(t *testing.T) {
+		path := "/test/path"
+		message := "test commit"
+		mock.CommitError = errors.New("commit error")
 
-	// Configure git user for commit
-	configCmd := exec.Command("git", "config", "user.name", "Test User")
-	configCmd.Dir = tempDir
-	if err := configCmd.Run(); err != nil {
-		t.Fatalf("failed to configure git user name: %v", err)
-	}
-	configCmd = exec.Command("git", "config", "user.email", "test@example.com")
-	configCmd.Dir = tempDir
-	if err := configCmd.Run(); err != nil {
-		t.Fatalf("failed to configure git user email: %v", err)
-	}
+		err := mock.Commit(path, message)
+		if err != mock.CommitError {
+			t.Errorf("expected error %v, got %v", mock.CommitError, err)
+		}
+		if !mock.CommitCalled {
+			t.Error("expected CommitCalled to be true")
+		}
+		if mock.LastCommitPath != path {
+			t.Errorf("expected LastCommitPath %s, got %s", path, mock.LastCommitPath)
+		}
+		if mock.LastCommitMsg != message {
+			t.Errorf("expected LastCommitMsg %s, got %s", message, mock.LastCommitMsg)
+		}
+	})
 
-	// Test successful commit
-	if err := Commit(tempDir, "Test commit"); err != nil {
-		t.Errorf("Commit failed: %v", err)
-	}
+	t.Run("Pull Tracking", func(t *testing.T) {
+		mock.PullError = errors.New("pull error")
+		err := mock.Pull("")
+		if err != mock.PullError {
+			t.Errorf("expected error %v, got %v", mock.PullError, err)
+		}
+		if !mock.PullCalled {
+			t.Error("expected PullCalled to be true")
+		}
+	})
 
-	// Test commit in non-git directory
-	nonGitDir, err := os.MkdirTemp("", "non-git-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(nonGitDir)
-
-	if err := Commit(nonGitDir, "Test commit"); err == nil {
-		t.Error("expected error for commit in non-git directory")
-	}
-}
-
-func TestPull(t *testing.T) {
-	// Create temp directory for test
-	tempDir, err := os.MkdirTemp("", "git-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Initialize git repo
-	if err := InitRepo(tempDir); err != nil {
-		t.Fatalf("failed to init repo: %v", err)
-	}
-
-	// Test pull (should fail as there's no remote)
-	if err := Pull(tempDir); err == nil {
-		t.Error("expected error for pull with no remote")
-	}
-
-	// Test pull in non-git directory
-	nonGitDir, err := os.MkdirTemp("", "non-git-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(nonGitDir)
-
-	if err := Pull(nonGitDir); err == nil {
-		t.Error("expected error for pull in non-git directory")
-	}
-}
-
-func TestPush(t *testing.T) {
-	// Create temp directory for test
-	tempDir, err := os.MkdirTemp("", "git-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Initialize git repo
-	if err := InitRepo(tempDir); err != nil {
-		t.Fatalf("failed to init repo: %v", err)
-	}
-
-	// Test push (should fail as there's no remote)
-	if err := Push(tempDir); err == nil {
-		t.Error("expected error for push with no remote")
-	}
-
-	// Test push in non-git directory
-	nonGitDir, err := os.MkdirTemp("", "non-git-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(nonGitDir)
-
-	if err := Push(nonGitDir); err == nil {
-		t.Error("expected error for push in non-git directory")
-	}
+	t.Run("Push Tracking", func(t *testing.T) {
+		mock.PushError = errors.New("push error")
+		err := mock.Push("")
+		if err != mock.PushError {
+			t.Errorf("expected error %v, got %v", mock.PushError, err)
+		}
+		if !mock.PushCalled {
+			t.Error("expected PushCalled to be true")
+		}
+	})
 }

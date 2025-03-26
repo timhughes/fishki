@@ -276,3 +276,38 @@ func TestLoadHandler(t *testing.T) {
 			status, http.StatusNotFound)
 	}
 }
+
+type MockGitClient struct {
+	StatusFunc func(repoPath string) (string, error)
+}
+
+func (m *MockGitClient) Status(repoPath string) (string, error) {
+	return m.StatusFunc(repoPath)
+}
+
+// Unit test for statusHandler
+func TestStatusHandler(t *testing.T) {
+	mockGit := &MockGitClient{
+		StatusFunc: func(repoPath string) (string, error) {
+			return "M modified-file.md", nil
+		},
+	}
+
+	cfg := &config.Config{WikiPath: "/test/repo"}
+	h := &Handler{config: cfg, gitClient: mockGit}
+	mux := http.NewServeMux()
+	mux.Handle("/api/status", h.statusHandler())
+
+	req, _ := http.NewRequest("GET", "/api/status", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "M modified-file.md"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}

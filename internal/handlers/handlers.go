@@ -6,30 +6,41 @@ import (
 	"os"
 	"path/filepath"
 
-"github.com/timhughes/fishki/internal/config"
-"github.com/timhughes/fishki/internal/git"
-"github.com/timhughes/fishki/internal/markdown"
+	"github.com/timhughes/fishki/internal/config"
+	"github.com/timhughes/fishki/internal/git"
+	"github.com/timhughes/fishki/internal/markdown"
 )
 
 type Handler struct {
-	config *config.Config
+	config    *config.Config
+	gitClient git.GitClient
 }
 
 func NewHandler(cfg *config.Config) *Handler {
-	return &Handler{config: cfg}
+	return &Handler{
+		config:    cfg,
+		gitClient: git.New(),
+	}
 }
 
 func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	h := NewHandler(cfg)
 
-	mux.HandleFunc("/api/init", h.initHandler())
-	mux.HandleFunc("/api/commit", h.commitHandler())
-	mux.HandleFunc("/api/pull", h.pullHandler())
-	mux.HandleFunc("/api/push", h.pushHandler())
-	mux.HandleFunc("/api/render", h.renderHandler())
-	mux.HandleFunc("/api/save", h.saveHandler())
-	mux.HandleFunc("/api/load", h.loadHandler())
-	mux.HandleFunc("/api/files", h.handleFiles)
+	// Wrap handlers with AccessLoggerMiddleware
+	mux.Handle("/api/init", AccessLoggerMiddleware(http.HandlerFunc(h.initHandler())))
+	mux.Handle("/api/commit", AccessLoggerMiddleware(http.HandlerFunc(h.commitHandler())))
+	mux.Handle("/api/pull", AccessLoggerMiddleware(http.HandlerFunc(h.pullHandler())))
+	mux.Handle("/api/push", AccessLoggerMiddleware(http.HandlerFunc(h.pushHandler())))
+	mux.Handle("/api/render", AccessLoggerMiddleware(http.HandlerFunc(h.renderHandler())))
+	mux.Handle("/api/save", AccessLoggerMiddleware(http.HandlerFunc(h.saveHandler())))
+	mux.Handle("/api/load", AccessLoggerMiddleware(http.HandlerFunc(h.loadHandler())))
+	mux.Handle("/api/files", AccessLoggerMiddleware(http.HandlerFunc(h.handleFiles)))
+	mux.Handle("/api/status", AccessLoggerMiddleware(http.HandlerFunc(h.statusHandler())))
+}
+
+// For testing purposes
+func (h *Handler) SetGitClient(client git.GitClient) {
+	h.gitClient = client
 }
 
 func (h *Handler) initHandler() http.HandlerFunc {
@@ -47,7 +58,7 @@ func (h *Handler) initHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := git.InitRepo(req.Path); err != nil {
+		if err := h.gitClient.Init(req.Path); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -81,7 +92,7 @@ func (h *Handler) commitHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := git.Commit(h.config.WikiPath, req.Message); err != nil {
+		if err := h.gitClient.Commit(h.config.WikiPath, req.Message); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -101,7 +112,7 @@ func (h *Handler) pullHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := git.Pull(h.config.WikiPath); err != nil {
+		if err := h.gitClient.Pull(h.config.WikiPath); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -121,7 +132,7 @@ func (h *Handler) pushHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := git.Push(h.config.WikiPath); err != nil {
+		if err := h.gitClient.Push(h.config.WikiPath); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -171,16 +182,22 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 			return
 		}
 
-filePath := filepath.Join(h.config.WikiPath, req.Filename)
-// Create parent directories if they don't exist
-if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-    http.Error(w, "Failed to create directories: "+err.Error(), http.StatusInternalServerError)
-    return
-}
-if err := os.WriteFile(filePath, []byte(req.Content), 0644); err != nil {
-    http.Error(w, err.Error(), http.StatusInternalServerError)
-    return
-}
+		filePath := filepath.Join(h.config.WikiPath, req.Filename)
+		// Create parent directories if they don't exist
+		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+			http.Error(w, "Failed to create directories: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := os.WriteFile(filePath, []byte(req.Content), 0644); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Auto-commit changes
+		if err := h.gitClient.Commit(h.config.WikiPath, "Update "+req.Filename); err != nil {
+			http.Error(w, "Failed to commit changes: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		w.WriteHeader(http.StatusOK)
 	}
@@ -216,5 +233,27 @@ func (h *Handler) loadHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write(content)
+	}
+}
+
+func (h *Handler) statusHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if h.config.WikiPath == "" {
+			http.Error(w, "Wiki path not set", http.StatusBadRequest)
+			return
+		}
+
+		status, err := h.gitClient.Status(h.config.WikiPath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(status))
 	}
 }
