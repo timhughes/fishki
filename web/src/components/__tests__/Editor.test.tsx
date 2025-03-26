@@ -48,6 +48,37 @@ describe('Editor', () => {
     });
   });
 
+  it('should update content when fetchedContent changes', async () => {
+    // First content load
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Initial Content'),
+      })
+    );
+
+    const { rerender } = render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('# Initial Content');
+    });
+
+    // Mock a new content fetch
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Updated Content'),
+      })
+    );
+
+    // Trigger a re-render
+    rerender(<Editor />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('# Updated Content');
+    });
+  });
+
   it('should switch between view modes', async () => {
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
