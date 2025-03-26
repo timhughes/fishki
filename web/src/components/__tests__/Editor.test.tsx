@@ -1,8 +1,7 @@
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import { render } from '../../test-utils/test-utils';
+import { screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act } from '@testing-library/react';
+import { render } from '../../test-utils/test-utils';
 import Editor from '../Editor';
 
 // Mock setup
@@ -50,6 +49,37 @@ describe('Editor', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toHaveValue(content);
+    });
+  });
+
+  it('should update content when fetchedContent changes', async () => {
+    // First content load
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Initial Content'),
+      })
+    );
+
+    const { rerender } = render(<Editor />, { initialEntries: ['/test/edit'] });
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('# Initial Content');
+    });
+
+    // Mock a new content fetch
+    mockedFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('# Updated Content'),
+      })
+    );
+
+    // Trigger a re-render
+    rerender(<Editor />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('# Updated Content');
     });
   });
 
@@ -103,8 +133,10 @@ describe('Editor', () => {
 
     // Edit content
     const editor = screen.getByRole('textbox');
-    await userEvent.clear(editor);
-    await userEvent.type(editor, '# New Content');
+    await act(async () => {
+      await userEvent.clear(editor);
+      await userEvent.type(editor, '# New Content');
+    });
 
     // Click save button
     await userEvent.click(screen.getByRole('button', { name: /save$/i }));
@@ -119,8 +151,10 @@ describe('Editor', () => {
 
     // Enter commit message and save
     const commitInput = screen.getByLabelText(/commit message/i);
-    await userEvent.type(commitInput, 'Test commit');
-    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    await act(async () => {
+      await userEvent.type(commitInput, 'Test commit');
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
       // Verify API calls
@@ -163,8 +197,10 @@ describe('Editor', () => {
     // Try to save
     await userEvent.click(screen.getByRole('button', { name: /save$/i }));
     const commitInput = screen.getByLabelText(/commit message/i);
-    await userEvent.type(commitInput, 'Test commit');
-    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    await act(async () => {
+      await userEvent.type(commitInput, 'Test commit');
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
@@ -190,8 +226,10 @@ describe('Editor', () => {
 
     // Edit content
     const editor = screen.getByRole('textbox');
-    await userEvent.clear(editor);
-    await userEvent.type(editor, '# New Title');
+    await act(async () => {
+      await userEvent.clear(editor);
+      await userEvent.type(editor, '# New Title');
+    });
 
     // Check if preview updates
     expect(screen.getByText('New Title')).toBeInTheDocument();

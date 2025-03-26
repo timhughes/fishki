@@ -29,7 +29,13 @@
     "start": "react-scripts start",
     "build": "GENERATE_SOURCEMAP=true react-scripts build",
     "build:dev": "GENERATE_SOURCEMAP=true NODE_ENV=development react-scripts build",
+<<<<<<< HEAD
     "test": "react-scripts test --watchAll=false --passWithNoTests --bail ",
+||||||| d0324ef
+    "test": "react-scripts test --watchAll=false --coverage --passWithNoTests",
+=======
+    "test": "react-scripts test --watchAll=false --coverage --passWithNoTests --bail",
+>>>>>>> f15e6e73e52322c069aa84ab83c490dfa27a4b34
     "test:watch": "react-scripts test --coverage --watchAll",
     "test:coverage": "react-scripts test --watchAll=false --coverage --passWithNoTests",
     "release": "npm run test && GENERATE_SOURCEMAP=false NODE_ENV=production react-scripts build",
