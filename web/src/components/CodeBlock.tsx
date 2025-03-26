@@ -2,9 +2,9 @@ import React from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from '@mui/material/styles';
-import { CodeComponent } from 'react-markdown/lib/complex-types';
+import { CodeProps } from 'react-markdown/lib/ast-to-react';
 
-const CodeBlock: React.FC<CodeComponent> = ({ inline, className, children }) => {
+const CodeBlock: React.FC<CodeProps> = ({ inline, className, children }) => {
   const theme = useTheme();
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : 'text';
