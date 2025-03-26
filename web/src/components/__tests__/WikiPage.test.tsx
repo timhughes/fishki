@@ -40,7 +40,7 @@ describe('WikiPage', () => {
 
   it('should render markdown content with formatting', async () => {
     const markdownContent = '# Test Content';
-    
+
     mockedFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,

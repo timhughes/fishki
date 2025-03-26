@@ -1,8 +1,4 @@
-import React, { useState } from 'react';
-import useFetchContent from '../hooks/useFetchContent';
-import MarkdownRenderer from './MarkdownRenderer';
-import LoadingError from './LoadingError';
-import CodeBlock from './CodeBlock';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, NavigateFunction } from 'react-router-dom';
 import { 
   Paper, 
@@ -15,7 +11,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  LinearProgress,
   Grid,
   ToggleButton,
   ToggleButtonGroup
@@ -23,153 +18,90 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import PreviewIcon from '@mui/icons-material/Visibility';
 import SplitscreenIcon from '@mui/icons-material/Splitscreen';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { materialDark, materialLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useTheme, Theme } from '@mui/material/styles';
-import { CodeProps } from 'react-markdown/lib/ast-to-react';
+import MarkdownRenderer from './MarkdownRenderer';
+import LoadingError from './LoadingError';
+import useFileOperations from '../hooks/useFileOperations';
 
 type ViewMode = 'edit' | 'preview' | 'split';
 
-interface SaveResponse {
-  ok: boolean;
+interface CommitData {
+  message: string;
+  filename: string;
+  content: string;
 }
-
-interface CommitResponse {
-  ok: boolean;
-}
-
 
 const Editor: React.FC = () => {
   const params = useParams();
-  const pathParam = params.path || 'index';
-  console.log('Editor Path:', { pathParam, params }); // Debug log
-  const actualFilename = pathParam;
-  const fullFilename = actualFilename + '.md';
-  const navigate: NavigateFunction = useNavigate();
-  const { content: fetchedContent, error, loading } = useFetchContent(actualFilename);
-  const [content, setContent] = useState<string>('');
+  const navigate = useNavigate();
+  
+  const filename = useMemo(() => {
+    const pathParam = params.path || 'index';
+    return `${pathParam}.md`;
+  }, [params.path]);
 
-  React.useEffect(() => {
-    if (fetchedContent) {
-      setContent(fetchedContent);
-    }
-  }, [fetchedContent]);
+  const { saveFile, loadFile, loading, error } = useFileOperations();
+  const [content, setContent] = useState<string>('');
   const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [commitMessage, setCommitMessage] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
 
-<<<<<<< HEAD
-  useEffect(() => {
-    const loadContent = async () => {
-      setLoading(true);
+  // Load initial content
+  React.useEffect(() => {
+    const fetchContent = async () => {
       try {
-        console.log('Editor Loading:', fullFilename); // Debug log
-        const response = await fetch(`/api/load?filename=${encodeURIComponent(fullFilename)}`);
-        
-        if (!response.ok && response.status !== 404) {
-          throw new Error('Failed to load page');
-        }
-        
-        const text = await response.text();
-        console.log('Editor Content Loaded:', fullFilename, !!text); // Debug log
-        setContent(text);
-        setError(null);
+        const fileContent = await loadFile(filename);
+        if (fileContent) setContent(fileContent);
       } catch (err) {
-        console.error('Editor Load Error:', err); // Debug log
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+        // Error is handled by useFileOperations
       }
     };
+    
+    fetchContent();
+  }, [filename, loadFile]);
 
-    loadContent();
-  }, [fullFilename]);
-
-||||||| d0324ef
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/load?filename=${actualFilename}`)
-      .then((response) => {
-        if (!response.ok && response.status !== 404) {
-          throw new Error('Failed to load page');
-        }
-        return response.text();
-      })
-      .then((text: string) => {
-        setContent(text);
-        setError(null);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [filename, actualFilename]);
-
-=======
->>>>>>> f15e6e73e52322c069aa84ab83c490dfa27a4b34
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     setSaving(true);
     try {
-      // Save the file
-      const saveResponse = await fetch('/api/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: fullFilename, content }),
-      });
-
-      if (!saveResponse.ok) {
-        throw new Error('Failed to save file');
-      }
-
-      // Commit the changes
-      const commitResponse = await fetch('/api/commit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: commitMessage || `Updated ${fullFilename}` }),
-      });
-
-      if (!commitResponse.ok) {
-        throw new Error('Failed to commit changes');
-      }
-
-      // Dispatch wiki-save event
+      await saveFile(filename, content);
       window.dispatchEvent(new Event('wiki-save'));
-
-      // Navigate back to view mode
-      navigate(pathParam === 'index' ? '/' : `/${pathParam}`);
-    } catch (err) {
+      setShowSaveDialog(false);
+      navigate(params.path === 'index' ? '/' : `/${params.path}`);
     } finally {
       setSaving(false);
-      setShowSaveDialog(false);
     }
-  };
+  }, [filename, content, navigate, params.path, saveFile]);
 
-  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null): void => {
+  const handleViewModeChange = useCallback((_: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
     if (newMode !== null) {
       setViewMode(newMode);
     }
-  };
+  }, []);
 
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+  }, []);
 
-  const editorContent = (
+  const handleCommitMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCommitMessage(e.target.value);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setShowSaveDialog(false);
+    setCommitMessage('');
+  }, []);
+
+  const editorContent = useMemo(() => (
     <TextField
       fullWidth
       multiline
       minRows={20}
       value={content}
-      onChange={(e) => setContent(e.target.value)}
+      onChange={handleContentChange}
       variant="outlined"
       placeholder="Enter your markdown content here..."
     />
-  );
-
-  const previewContent = (
-    <Paper sx={{ p: 2, minHeight: '500px' }}>
-      <ReactMarkdown components={{ code: CodeBlock }}>
-        {content}
-      </ReactMarkdown>
-    </Paper>
-  );
+  ), [content, handleContentChange]);
 
   return (
     <>
@@ -230,7 +162,7 @@ const Editor: React.FC = () => {
         </Box>
       </Paper>
 
-      <Dialog open={showSaveDialog} onClose={() => setShowSaveDialog(false)}>
+      <Dialog open={showSaveDialog} onClose={handleCloseDialog}>
         <DialogTitle>Save Changes</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -242,12 +174,16 @@ const Editor: React.FC = () => {
             label="Commit Message"
             fullWidth
             value={commitMessage}
-            onChange={(e) => setCommitMessage(e.target.value)}
+            onChange={handleCommitMessageChange}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowSaveDialog(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={saving}>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button 
+            onClick={handleSave} 
+            variant="contained" 
+            disabled={saving || !commitMessage.trim()}
+          >
             {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>

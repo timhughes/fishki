@@ -1,26 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { loadFile, createAbortController } from '../services/api';
 
-const useFetchContent = (filename: string) => {
+interface FetchContentResult {
+  content: string;
+  error: string | null;
+  loading: boolean;
+}
+
+const useFetchContent = (filename: string): FetchContentResult => {
   const [content, setContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const handleError = useCallback((err: unknown) => {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    setError(message);
+  }, []);
+
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/load?filename=${filename}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load page');
-        }
-        return response.text();
-      })
-      .then((text: string) => {
-        setContent(text);
-        setError(null);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [filename]);
+    const abortController = createAbortController();
+
+    const fetchContent = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const content = await loadFile(filename, abortController.signal);
+        setContent(content);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        handleError(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [filename, handleError]);
 
   return { content, error, loading };
 };
