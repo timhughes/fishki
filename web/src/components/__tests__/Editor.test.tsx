@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../../test-utils/test-utils';
 import Editor from '../Editor';
@@ -126,8 +126,10 @@ describe('Editor', () => {
 
     // Edit content
     const editor = screen.getByRole('textbox');
-    await userEvent.clear(editor);
-    await userEvent.type(editor, '# New Content');
+    await act(async () => {
+      await userEvent.clear(editor);
+      await userEvent.type(editor, '# New Content');
+    });
 
     // Click save button
     fireEvent.click(screen.getByRole('button', { name: /save$/i }));
@@ -142,7 +144,9 @@ describe('Editor', () => {
 
     // Enter commit message and save
     const commitInput = screen.getByLabelText(/commit message/i);
-    await userEvent.type(commitInput, 'Test commit');
+    await act(async () => {
+      await userEvent.type(commitInput, 'Test commit');
+    });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
@@ -186,7 +190,9 @@ describe('Editor', () => {
     // Try to save
     fireEvent.click(screen.getByRole('button', { name: /save$/i }));
     const commitInput = screen.getByLabelText(/commit message/i);
-    await userEvent.type(commitInput, 'Test commit');
+    await act(async () => {
+      await userEvent.type(commitInput, 'Test commit');
+    });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {
@@ -213,8 +219,10 @@ describe('Editor', () => {
 
     // Edit content
     const editor = screen.getByRole('textbox');
-    await userEvent.clear(editor);
-    await userEvent.type(editor, '# New Title');
+    await act(async () => {
+      await userEvent.clear(editor);
+      await userEvent.type(editor, '# New Title');
+    });
 
     // Check if preview updates
     expect(screen.getByText('New Title')).toBeInTheDocument();
