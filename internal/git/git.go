@@ -21,7 +21,6 @@ type GitClient interface {
 // DefaultGitClient is the default implementation of GitClient
 type DefaultGitClient struct{}
 
-
 // New creates a new DefaultGitClient
 func New() GitClient {
 	return &DefaultGitClient{}

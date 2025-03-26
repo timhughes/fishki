@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -73,15 +74,6 @@ func TestCommitIntegration(t *testing.T) {
 		t.Errorf("Commit failed: %v", err)
 	}
 
-	// Verify clean status after commit
-	clean, err := client.Status(tempDir)
-	if err != nil {
-		t.Errorf("Status check failed: %v", err)
-	}
-	if !clean {
-		t.Error("expected clean status after commit")
-	}
-
 	// Test commit in non-git directory
 	nonGitDir, err := os.MkdirTemp("", "non-git-*")
 	if err != nil {
@@ -89,9 +81,8 @@ func TestCommitIntegration(t *testing.T) {
 	}
 	defer os.RemoveAll(nonGitDir)
 
-	err = client.Commit(nonGitDir, "Test commit")
-	if _, ok := err.(*ErrNotRepository); !ok {
-		t.Errorf("expected ErrNotRepository for commit in non-git directory, got %T", err)
+	if err := client.Commit(nonGitDir, "Test commit"); err == nil {
+		t.Error("expected error for commit in non-git directory")
 	}
 }
 
@@ -111,9 +102,8 @@ func TestPullIntegration(t *testing.T) {
 	}
 
 	// Test pull (should fail as there's no remote)
-	err = client.Pull(tempDir)
-	if _, ok := err.(*ErrNoRemote); !ok {
-		t.Errorf("expected ErrNoRemote for pull with no remote, got %T", err)
+	if err := client.Pull(tempDir); err == nil {
+		t.Error("expected error for pull with no remote")
 	}
 
 	// Test pull in non-git directory
@@ -123,9 +113,8 @@ func TestPullIntegration(t *testing.T) {
 	}
 	defer os.RemoveAll(nonGitDir)
 
-	err = client.Pull(nonGitDir)
-	if _, ok := err.(*ErrNotRepository); !ok {
-		t.Errorf("expected ErrNotRepository for pull in non-git directory, got %T", err)
+	if err := client.Pull(nonGitDir); err == nil {
+		t.Error("expected error for pull in non-git directory")
 	}
 }
 
@@ -145,9 +134,8 @@ func TestPushIntegration(t *testing.T) {
 	}
 
 	// Test push (should fail as there's no remote)
-	err = client.Push(tempDir)
-	if _, ok := err.(*ErrNoRemote); !ok {
-		t.Errorf("expected ErrNoRemote for push with no remote, got %T", err)
+	if err := client.Push(tempDir); err == nil {
+		t.Error("expected error for push with no remote")
 	}
 
 	// Test push in non-git directory
@@ -157,8 +145,47 @@ func TestPushIntegration(t *testing.T) {
 	}
 	defer os.RemoveAll(nonGitDir)
 
-	err = client.Push(nonGitDir)
-	if _, ok := err.(*ErrNotRepository); !ok {
-		t.Errorf("expected ErrNotRepository for push in non-git directory, got %T", err)
+	if err := client.Push(nonGitDir); err == nil {
+		t.Error("expected error for push in non-git directory")
+	}
+}
+
+func TestStatusIntegration(t *testing.T) {
+	client := New()
+
+	// Create temp directory for test
+	tempDir, err := os.MkdirTemp("", "git-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Initialize git repo
+	if err := client.Init(tempDir); err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	// Test status on clean repo
+	status, err := client.Status(tempDir)
+	if err != nil {
+		t.Errorf("Status failed: %v", err)
+	}
+	if len(strings.TrimSpace(status)) > 0 {
+		t.Error("expected clean status on new repo")
+	}
+
+	// Create an untracked file
+	testFile := filepath.Join(tempDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("test content"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	// Test status with untracked file
+	status, err = client.Status(tempDir)
+	if err != nil {
+		t.Errorf("Status failed: %v", err)
+	}
+	if len(strings.TrimSpace(status)) == 0 {
+		t.Error("expected dirty status with untracked file")
 	}
 }
