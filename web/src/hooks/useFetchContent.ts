@@ -14,20 +14,27 @@ const useFetchContent = (filename: string): FetchContentResult => {
 
   const handleError = useCallback((err: unknown) => {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error('Error fetching content:', err);
     setError(message);
   }, []);
 
   useEffect(() => {
+    console.log('Fetching content for:', filename); // Debug log
     const abortController = createAbortController();
 
     const fetchContent = async () => {
       setLoading(true);
       setError(null);
       try {
+        console.log('Making API request for:', filename); // Debug log
         const content = await loadFile(filename, abortController.signal);
+        console.log('Received content:', content ? content.substring(0, 100) + '...' : 'empty'); // Debug log
         setContent(content);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('Request aborted for:', filename); // Debug log
+          return;
+        }
         handleError(err);
       } finally {
         setLoading(false);
@@ -37,6 +44,7 @@ const useFetchContent = (filename: string): FetchContentResult => {
     fetchContent();
 
     return () => {
+      console.log('Cleaning up fetch for:', filename); // Debug log
       abortController.abort();
     };
   }, [filename, handleError]);

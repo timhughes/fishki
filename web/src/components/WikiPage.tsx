@@ -8,12 +8,15 @@ import useFileOperations from '../hooks/useFileOperations';
 
 const WikiPage: React.FC = () => {
   const navigate = useNavigate();
-  const params = useParams();
+  const { path } = useParams<{ path: string }>();
 
   const filename = useMemo(() => {
-    const pagename = params['*'] || params['filename'] || 'index';
-    return `${pagename}.md`;
-  }, [params]);
+    console.log('WikiPage path param:', path); // Debug log
+    const pagename = path || 'index';
+    const result = `${pagename}.md`;
+    console.log('WikiPage filename:', result); // Debug log
+    return result;
+  }, [path]);
 
   const pagename = useMemo(() => filename.replace('.md', ''), [filename]);
   
@@ -28,7 +31,7 @@ const WikiPage: React.FC = () => {
 
   const handleCreatePage = useCallback(async (): Promise<void> => {
     try {
-      await saveFile(filename, `# ${pagename}`);
+      await saveFile(filename, `# ${pagename.split('/').pop()}`);
       window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create page');
@@ -38,6 +41,16 @@ const WikiPage: React.FC = () => {
   const handleEdit = useCallback(() => {
     navigate(pagename === 'index' ? '/edit' : `/${pagename}/edit`);
   }, [navigate, pagename]);
+
+  // Debug log when component renders
+  console.log('WikiPage render:', {
+    path,
+    filename,
+    pagename,
+    fetchedContent,
+    loading,
+    error
+  });
 
   return (
     <Paper sx={{ p: 2, mt: 2 }}>

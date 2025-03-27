@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -60,9 +60,9 @@ const App: React.FC = () => {
           >
             <Breadcrumbs />
             <Routes>
-              <Route path="/edit" element={<Editor />} />
               <Route path="/:path(*)/edit" element={<Editor />} />
               <Route path="/:path(*)" element={<WikiPage />} />
+              <Route path="/edit" element={<Editor />} />
               <Route path="/" element={<WikiPage />} />
             </Routes>
           </Box>

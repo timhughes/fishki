@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { List, ListItem, ListItemIcon, ListItemText, IconButton } from '@mui/material';
 import {
   Description as FileIcon,
   ChevronRight as ChevronRightIcon,
   ExpandMore as ExpandMoreIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FileTreeProps } from '../types/files';
@@ -29,12 +30,24 @@ const FileTree: React.FC<FileTreeProps> = ({ files, level = 0, onSelect }) => {
     return path.replace(/\.md$/, '');
   }, []);
 
+  const handleEdit = useCallback((e: React.MouseEvent, filePath: string) => {
+    e.stopPropagation();
+    navigate(`/${getPathWithoutExtension(filePath)}/edit`);
+    if (onSelect) onSelect();
+  }, [navigate, getPathWithoutExtension, onSelect]);
+
+  const handleView = useCallback((filePath: string) => {
+    const cleanPath = getPathWithoutExtension(filePath);
+    console.log('FileTree - Viewing path:', filePath);
+    console.log('FileTree - Clean path:', cleanPath);
+    navigate('/' + cleanPath); // Ensure we always have a leading slash
+    if (onSelect) onSelect();
+  }, [navigate, getPathWithoutExtension, onSelect]);
+
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
-      // Sort folders before files
       if (a.type === 'folder' && b.type !== 'folder') return -1;
       if (a.type !== 'folder' && b.type === 'folder') return 1;
-      // Sort by name
       return a.name.localeCompare(b.name);
     });
   }, [files]);
@@ -44,25 +57,28 @@ const FileTree: React.FC<FileTreeProps> = ({ files, level = 0, onSelect }) => {
       {sortedFiles.map((file) => {
         const isFolder = file.type === 'folder';
         const isExpanded = expandedFolders.has(file.path);
-        const isCurrentFile = location.pathname === `/${getPathWithoutExtension(file.path)}`;
+        const cleanPath = getPathWithoutExtension(file.path);
+        const isCurrentFile = location.pathname === `/${cleanPath}` || 
+                            location.pathname === `/${cleanPath}/edit`;
+
+        console.log('FileTree - Rendering file:', {
+          path: file.path,
+          cleanPath,
+          currentPath: location.pathname,
+          isCurrentFile
+        });
 
         return (
           <React.Fragment key={file.path}>
             <ListItem
               button
-              onClick={() => {
-                if (isFolder) {
-                  toggleFolder(file.path);
-                } else {
-                  navigate(`/${getPathWithoutExtension(file.path)}`);
-                  if (onSelect) onSelect();
-                }
-              }}
+              onClick={() => isFolder ? toggleFolder(file.path) : handleView(file.path)}
               sx={{
                 bgcolor: isCurrentFile ? 'action.selected' : 'transparent',
                 '&:hover': {
                   bgcolor: 'action.hover',
                 },
+                pr: 1, // Make room for edit button
               }}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>
@@ -80,6 +96,15 @@ const FileTree: React.FC<FileTreeProps> = ({ files, level = 0, onSelect }) => {
                   } 
                 }}
               />
+              {!isFolder && (
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleEdit(e, file.path)}
+                  sx={{ ml: 1 }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
             </ListItem>
             {isFolder && isExpanded && file.children && (
               <FileTree
