@@ -4,6 +4,7 @@ import { FileInfo } from '../types/files';
 const API_ENDPOINTS = {
   SAVE_FILE: '/api/save',
   LOAD_FILE: '/api/load',
+  LIST_FILES: '/api/files',
 } as const;
 
 export class ApiRequestError extends Error implements ApiErrorType {
@@ -62,7 +63,7 @@ interface FileListResponse {
 }
 
 export async function listFiles(): Promise<FileInfo[]> {
-  const response = await fetch('/api/files');
+  const response = await fetch(`${API_ENDPOINTS.LIST_FILES}`);
   const data = await handleResponse<FileListResponse>(response);
   return data.files;
 }
