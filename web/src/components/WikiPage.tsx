@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useMatch, useNavigate } from 'react-router-dom';
 import { Paper, Typography, Box, Button } from '@mui/material';
 import MarkdownRenderer from './MarkdownRenderer';
 import LoadingError from './LoadingError';
@@ -8,15 +8,17 @@ import useFileOperations from '../hooks/useFileOperations';
 
 const WikiPage: React.FC = () => {
   const navigate = useNavigate();
-  const { path } = useParams<{ path: string }>();
+  const match = useMatch('/:path/*');
+  const match2 = useMatch('/');
 
   const filename = useMemo(() => {
-    console.log('WikiPage path param:', path); // Debug log
+    const path = match?.params?.path || match?.params['*'] || '';
+    console.log('WikiPage matched path:', path); // Debug log
     const pagename = path || 'index';
     const result = `${pagename}.md`;
     console.log('WikiPage filename:', result); // Debug log
     return result;
-  }, [path]);
+  }, [match]);
 
   const pagename = useMemo(() => filename.replace('.md', ''), [filename]);
   
@@ -44,7 +46,7 @@ const WikiPage: React.FC = () => {
 
   // Debug log when component renders
   console.log('WikiPage render:', {
-    path,
+    match,
     filename,
     pagename,
     fetchedContent,
