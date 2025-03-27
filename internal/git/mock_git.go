@@ -1,59 +1,35 @@
 package git
 
-// MockGitClient implements GitClient for testing
-type MockGitClient struct {
-	IsRepoValue    bool
-	HasRemoteValue bool
-	StatusValue    string
-	StatusError    error
-	InitError      error
-	CommitError    error
-	PullError      error
-	PushError      error
-	CommitCalled   bool
-	PullCalled     bool
-	PushCalled     bool
-	LastCommitPath string
-	LastCommitMsg  string
-}
+type MockGitClient struct{}
 
-func NewMockGitClient() *MockGitClient {
-	return &MockGitClient{
-		IsRepoValue:    true,
-		HasRemoteValue: true,
-		StatusValue:    "", // Empty string means clean status
-	}
-}
-
-func (m *MockGitClient) IsRepository(path string) bool {
-	return m.IsRepoValue
-}
-
-func (m *MockGitClient) HasRemote(path string) bool {
-	return m.HasRemoteValue
-}
-
-func (m *MockGitClient) Status(path string) (string, error) {
-	return m.StatusValue, m.StatusError
+func NewMock() GitClient {
+    return &MockGitClient{}
 }
 
 func (m *MockGitClient) Init(path string) error {
-	return m.InitError
+    return nil
 }
 
 func (m *MockGitClient) Commit(path, message string) error {
-	m.CommitCalled = true
-	m.LastCommitPath = path
-	m.LastCommitMsg = message
-	return m.CommitError
+    return nil
 }
 
 func (m *MockGitClient) Pull(path string) error {
-	m.PullCalled = true
-	return m.PullError
+    return nil
 }
 
 func (m *MockGitClient) Push(path string) error {
-	m.PushCalled = true
-	return m.PushError
+    return nil
+}
+
+func (m *MockGitClient) Status(path string) (string, error) {
+    return "mock status", nil
+}
+
+func (m *MockGitClient) HasRemote(path string) bool {
+    return true
+}
+
+func (m *MockGitClient) IsRepository(path string) bool {
+    return true
 }
