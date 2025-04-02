@@ -44,6 +44,9 @@ frontend-run: ## Run the frontend application
 frontend-test: ## Run frontend tests
 	cd $(FRONTEND_DIR) && npm run test
 
+frontend-test-watch: ## Run frontend tests in watch mode
+	cd $(FRONTEND_DIR) && npm run test:watch
+
 clean: ## Clean the build artifacts
 	rm -rf bin/
 	rm -rf $(FRONTEND_DIR)/dist
