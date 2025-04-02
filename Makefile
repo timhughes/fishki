@@ -29,7 +29,7 @@ fmt: ## Format the code
 vet: ## Run go vet
 	$(GO_VET) ./...
 
-run: ## Run the application
+run: frontend-build ## Run the application
 	$(GO_CMD) run ./cmd/fishki-server
 
 frontend-build: ## Build the frontend application

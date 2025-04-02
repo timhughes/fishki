@@ -7,7 +7,7 @@ interface MarkdownViewerProps {
 }
 
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit }) => {
-  const [content, setContent] = React.useState<string>('');
+  const [_, setContent] = React.useState<string>('');
   const [renderedContent, setRenderedContent] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
