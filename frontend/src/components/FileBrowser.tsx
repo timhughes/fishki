@@ -43,7 +43,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({ onFileSelect, selected
             alignItems: 'center',
           }}
         >
-          {item.type === 'folder' ? '📁' : '📄'} {item.name}
+          {item.type === 'folder' ? '📁' : '📄'} {item.type === 'folder' ? item.name : item.name.replace(/\.md$/, '')}
         </div>
         {item.children && renderFileTree(item.children, level + 1)}
       </div>

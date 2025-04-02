@@ -33,7 +33,7 @@ describe('FileBrowser', () => {
     render(<FileBrowser onFileSelect={() => {}} />);
     
     await waitFor(() => {
-      const welcomeText = screen.getByText((content) => content.includes('welcome.md'));
+      const welcomeText = screen.getByText((content) => content.includes('welcome'));
       expect(welcomeText).toBeInTheDocument();
     });
   });
@@ -43,11 +43,11 @@ describe('FileBrowser', () => {
     render(<FileBrowser onFileSelect={handleFileSelect} />);
     
     await waitFor(() => {
-      const welcomeText = screen.getByText((content) => content.includes('welcome.md'));
+      const welcomeText = screen.getByText((content) => content.includes('welcome'));
       expect(welcomeText).toBeInTheDocument();
     });
 
-    const fileItem = screen.getByText((content) => content.includes('welcome.md'));
+    const fileItem = screen.getByText((content) => content.includes('welcome'));
     await userEvent.click(fileItem);
     expect(handleFileSelect).toHaveBeenCalledWith('welcome.md');
   });
@@ -56,7 +56,7 @@ describe('FileBrowser', () => {
     render(<FileBrowser onFileSelect={() => {}} selectedFile="welcome.md" />);
     
     await waitFor(() => {
-      const fileElement = screen.getByText((content) => content.includes('welcome.md')).closest('.file-item');
+      const fileElement = screen.getByText((content) => content.includes('welcome')).closest('.file-item');
       expect(fileElement).toHaveClass('selected');
     });
   });
