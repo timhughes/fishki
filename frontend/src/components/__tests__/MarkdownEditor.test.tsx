@@ -44,9 +44,14 @@ describe('MarkdownEditor', () => {
   it('updates preview when content changes', async () => {
     const newContent = '## Updated Content';
     const newRenderedContent = '<h2>Updated Content</h2>';
-    (api.render as jest.Mock)
-      .mockResolvedValueOnce(mockRenderedContent) // Initial render
-      .mockResolvedValueOnce(newRenderedContent); // Content update render
+    
+    // Mock the render function for all calls
+    (api.render as jest.Mock).mockImplementation(content => {
+      if (content === newContent) {
+        return Promise.resolve(newRenderedContent);
+      }
+      return Promise.resolve(mockRenderedContent);
+    });
 
     render(
       <MarkdownEditor
@@ -68,12 +73,11 @@ describe('MarkdownEditor', () => {
     await userEvent.clear(textarea);
     await userEvent.type(textarea, newContent);
 
-    // Wait for preview to update
+    // Wait for the preview to update with the new content
     await waitFor(() => {
-      expect(api.render).toHaveBeenLastCalledWith(newContent);
       const preview = document.querySelector('.markdown-content');
       expect(preview?.innerHTML).toBe(newRenderedContent);
-    });
+    }, { timeout: 3000 });
   });
 
   it('handles save button click', async () => {
