@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { FileBrowser } from '../FileBrowser';
+import { PageBrowser } from '../PageBrowser';
 import { api } from '../../api/client';
 
 // Mock the API client
@@ -11,7 +11,7 @@ jest.mock('../../api/client', () => ({
   },
 }));
 
-describe('FileBrowser', () => {
+describe('PageBrowser', () => {
   const mockFiles = [
     {
       name: 'welcome.md',
@@ -25,12 +25,12 @@ describe('FileBrowser', () => {
   });
 
   it('renders loading state initially', () => {
-    render(<FileBrowser onFileSelect={() => {}} />);
+    render(<PageBrowser onFileSelect={() => {}} />);
     expect(screen.getByText('Loading files...')).toBeInTheDocument();
   });
 
   it('renders files after loading', async () => {
-    render(<FileBrowser onFileSelect={() => {}} />);
+    render(<PageBrowser onFileSelect={() => {}} />);
     
     await waitFor(() => {
       const welcomeText = screen.getByText((content) => content.includes('welcome'));
@@ -40,7 +40,7 @@ describe('FileBrowser', () => {
 
   it('calls onFileSelect when clicking a file', async () => {
     const handleFileSelect = jest.fn();
-    render(<FileBrowser onFileSelect={handleFileSelect} />);
+    render(<PageBrowser onFileSelect={handleFileSelect} />);
     
     await waitFor(() => {
       const welcomeText = screen.getByText((content) => content.includes('welcome'));
@@ -53,7 +53,7 @@ describe('FileBrowser', () => {
   });
 
   it('highlights selected file', async () => {
-    render(<FileBrowser onFileSelect={() => {}} selectedFile="welcome.md" />);
+    render(<PageBrowser onFileSelect={() => {}} selectedFile="welcome.md" />);
     
     await waitFor(() => {
       const fileElement = screen.getByText((content) => content.includes('welcome')).closest('.file-item');

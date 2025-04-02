@@ -2,12 +2,12 @@ import React from 'react';
 import { FileInfo } from '../types/api';
 import { api } from '../api/client';
 
-interface FileBrowserProps {
+interface PageBrowserProps {
   onFileSelect: (path: string) => void;
   selectedFile?: string;
 }
 
-export const FileBrowser: React.FC<FileBrowserProps> = ({ onFileSelect, selectedFile }) => {
+export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selectedFile }) => {
   const [files, setFiles] = React.useState<FileInfo[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();

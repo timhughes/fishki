@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileBrowser } from './components/FileBrowser';
+import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { api } from './api/client';
@@ -39,7 +39,7 @@ function App() {
       height: '100vh',
       overflow: 'hidden'
     }}>
-      <FileBrowser
+      <PageBrowser
         onFileSelect={handleFileSelect}
         selectedFile={selectedFile}
       />
