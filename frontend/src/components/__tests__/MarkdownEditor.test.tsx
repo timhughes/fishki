@@ -166,4 +166,43 @@ describe('MarkdownEditor', () => {
       expect(screen.getByText(error)).toBeInTheDocument();
     });
   });
+
+  it('updates preview correctly when content changes', async () => {
+    const newContent = '## Updated Content';
+    const newRenderedContent = '<h2>Updated Content</h2>';
+    
+    // Mock the render function for all calls
+    (api.render as jest.Mock).mockImplementation(content => {
+      if (content === newContent) {
+        return Promise.resolve(newRenderedContent);
+      }
+      return Promise.resolve(mockRenderedContent);
+    });
+
+    render(
+      <MarkdownEditor
+        filePath={mockFilePath}
+        initialContent={mockInitialContent}
+        onSave={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    // Wait for initial render
+    await waitFor(() => {
+      const preview = document.querySelector('.markdown-content');
+      expect(preview?.innerHTML).toBe(mockRenderedContent);
+    });
+
+    // Update content
+    const textarea = screen.getByRole('textbox');
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, newContent);
+
+    // Wait for the preview to update with the new content
+    await waitFor(() => {
+      const preview = document.querySelector('.markdown-content');
+      expect(preview?.innerHTML).toBe(newRenderedContent);
+    }, { timeout: 3000 });
+  });
 });
