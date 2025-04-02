@@ -57,6 +57,11 @@ func (h *Handler) initHandler() http.HandlerFunc {
             return
         }
 
+        if req.Path == "" {
+            http.Error(w, "Path is required", http.StatusBadRequest)
+            return
+        }
+
         if err := h.gitClient.Init(req.Path); err != nil {
             http.Error(w, err.Error(), http.StatusInternalServerError)
             return
@@ -124,6 +129,11 @@ func (h *Handler) renderHandler() http.HandlerFunc {
         }
         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
             http.Error(w, err.Error(), http.StatusBadRequest)
+            return
+        }
+
+        if req.Markdown == "" {
+            http.Error(w, "Markdown content is required", http.StatusBadRequest)
             return
         }
 
