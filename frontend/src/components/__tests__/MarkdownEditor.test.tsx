@@ -7,18 +7,21 @@ import { api } from '../../api/client';
 jest.mock('../../api/client', () => ({
   api: {
     save: jest.fn(),
+    render: jest.fn(),
   },
 }));
 
 describe('MarkdownEditor', () => {
   const mockInitialContent = '# Test Content';
+  const mockRenderedContent = '<h1>Test Content</h1>';
   const mockFilePath = 'test.md';
 
   beforeEach(() => {
     (api.save as jest.Mock).mockResolvedValue(undefined);
+    (api.render as jest.Mock).mockResolvedValue(mockRenderedContent);
   });
 
-  it('renders with initial content', () => {
+  it('renders with initial content and preview', async () => {
     render(
       <MarkdownEditor
         filePath={mockFilePath}
@@ -30,9 +33,21 @@ describe('MarkdownEditor', () => {
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
     expect(textarea.value).toBe(mockInitialContent);
+
+    await waitFor(() => {
+      const preview = document.querySelector('.markdown-content');
+      expect(preview).toBeInTheDocument();
+      expect(preview?.innerHTML).toBe(mockRenderedContent);
+    });
   });
 
-  it('handles content changes', async () => {
+  it('updates preview when content changes', async () => {
+    const newContent = '## Updated Content';
+    const newRenderedContent = '<h2>Updated Content</h2>';
+    (api.render as jest.Mock)
+      .mockResolvedValueOnce(mockRenderedContent) // Initial render
+      .mockResolvedValueOnce(newRenderedContent); // Content update render
+
     render(
       <MarkdownEditor
         filePath={mockFilePath}
@@ -42,9 +57,23 @@ describe('MarkdownEditor', () => {
       />
     );
 
+    // Wait for initial render
+    await waitFor(() => {
+      const preview = document.querySelector('.markdown-content');
+      expect(preview?.innerHTML).toBe(mockRenderedContent);
+    });
+
+    // Update content
     const textarea = screen.getByRole('textbox');
-    await userEvent.type(textarea, ' - Updated');
-    expect((textarea as HTMLTextAreaElement).value).toBe(mockInitialContent + ' - Updated');
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, newContent);
+
+    // Wait for preview to update
+    await waitFor(() => {
+      expect(api.render).toHaveBeenLastCalledWith(newContent);
+      const preview = document.querySelector('.markdown-content');
+      expect(preview?.innerHTML).toBe(newRenderedContent);
+    });
   });
 
   it('handles save button click', async () => {

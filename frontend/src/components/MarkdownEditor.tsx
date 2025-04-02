@@ -17,6 +17,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [content, setContent] = React.useState(initialContent);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
+  const [renderedContent, setRenderedContent] = React.useState('');
 
   const handleSave = async () => {
     try {
@@ -30,8 +31,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   };
 
+  React.useEffect(() => {
+    const renderPreview = async () => {
+      try {
+        const rendered = await api.render(content);
+        setRenderedContent(rendered);
+      } catch (err) {
+        console.error('Failed to render preview:', err);
+      }
+    };
+    renderPreview();
+  }, [content]);
+
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: '100%', margin: '0 auto' }}>
       <div style={{ 
         display: 'flex', 
         justifyContent: 'flex-end', 
@@ -79,22 +92,41 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           {error}
         </div>
       )}
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        style={{
-          width: '100%',
-          minHeight: '500px',
-          padding: '16px',
-          border: '1px solid #ced4da',
-          borderRadius: '4px',
-          fontFamily: 'monospace',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          resize: 'vertical'
-        }}
-        disabled={saving}
-      />
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 1fr',
+        gap: '20px',
+        marginTop: '16px' 
+      }}>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{
+            width: '100%',
+            minHeight: '500px',
+            padding: '16px',
+            border: '1px solid #ced4da',
+            borderRadius: '4px',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            resize: 'vertical'
+          }}
+          disabled={saving}
+        />
+        <div 
+          className="markdown-content"
+          style={{
+            padding: '16px',
+            border: '1px solid #ced4da',
+            borderRadius: '4px',
+            backgroundColor: '#fff',
+            overflowY: 'auto',
+            maxHeight: '500px'
+          }}
+          dangerouslySetInnerHTML={{ __html: renderedContent }}
+        />
+      </div>
     </div>
   );
 };
