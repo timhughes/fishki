@@ -1,35 +1,70 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { FileBrowser } from './components/FileBrowser';
+import { MarkdownViewer } from './components/MarkdownViewer';
+import { MarkdownEditor } from './components/MarkdownEditor';
+import { api } from './api/client';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [selectedFile, setSelectedFile] = React.useState<string>();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [currentContent, setCurrentContent] = React.useState<string>('');
+
+  const handleFileSelect = async (path: string) => {
+    try {
+      setSelectedFile(path);
+      setIsEditing(false);
+      const content = await api.load(path);
+      setCurrentContent(content);
+    } catch (error) {
+      console.error('Failed to load file:', error);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '300px 1fr',
+      height: '100vh',
+      overflow: 'hidden'
+    }}>
+      <FileBrowser
+        onFileSelect={handleFileSelect}
+        selectedFile={selectedFile}
+      />
+      <main style={{
+        overflow: 'auto',
+        backgroundColor: '#f8f9fa'
+      }}>
+        {selectedFile && (
+          isEditing ? (
+            <MarkdownEditor
+              filePath={selectedFile}
+              initialContent={currentContent}
+              onSave={handleSave}
+              onCancel={handleCancel}
+            />
+          ) : (
+            <MarkdownViewer
+              filePath={selectedFile}
+              onEdit={handleEdit}
+            />
+          )
+        )}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
