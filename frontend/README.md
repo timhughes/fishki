@@ -7,6 +7,37 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## API Client
+
+The project includes a TypeScript API client for interacting with the backend server. The client provides typed methods for all available endpoints:
+
+```typescript
+import { api } from './api/client';
+
+// Initialize a new wiki
+await api.init('/path/to/wiki');
+
+// File operations
+const files = await api.getFiles();
+const content = await api.load('example.md');
+await api.save('example.md', '# New content');
+
+// Git operations
+await api.pull();
+await api.push();
+const status = await api.getStatus();
+
+// Markdown rendering
+const html = await api.render('# Heading');
+```
+
+You can also create a custom instance with a different base URL:
+
+```typescript
+import ApiClient from './api/client';
+const customApi = new ApiClient('http://localhost:3000/api');
+```
+
 ## Testing
 
 The project uses Jest and React Testing Library for unit testing. To run tests:
