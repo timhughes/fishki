@@ -1,4 +1,6 @@
 import React from 'react';
+import { Box, Paper, Button, CircularProgress, Alert, Typography } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
 import { api } from '../api/client';
 
 interface MarkdownViewerProps {
@@ -34,42 +36,112 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit
   }, [filePath]);
 
   if (!filePath) {
-    return <div>No file selected</div>;
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+        }}
+      >
+        <Typography variant="body1" color="text.secondary">
+          No file selected
+        </Typography>
+      </Box>
+    );
   }
 
   if (loading) {
-    return <div>Loading content...</div>;
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        marginBottom: '16px'
-      }}>
-        <button 
+    <Paper
+      elevation={0}
+      sx={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        p: 3,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          mb: 2,
+        }}
+      >
+        <Button
+          variant="contained"
+          color="primary"
           onClick={onEdit}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
+          startIcon={<EditIcon />}
+          size="small"
         >
           Edit
-        </button>
-      </div>
-      <div
+        </Button>
+      </Box>
+      <Box
         className="markdown-content"
+        sx={{
+          '& img': {
+            maxWidth: '100%',
+            height: 'auto',
+          },
+          '& pre': {
+            bgcolor: 'grey.100',
+            borderRadius: 1,
+            overflow: 'auto',
+          },
+          '& code': {
+            bgcolor: 'grey.100',
+            px: 0.5,
+            borderRadius: 0.5,
+            fontFamily: 'monospace',
+          },
+          '& blockquote': {
+            borderLeft: 4,
+            borderColor: 'grey.300',
+            pl: 2,
+            ml: 0,
+            color: 'text.secondary',
+          },
+          '& table': {
+            borderCollapse: 'collapse',
+            width: '100%',
+            '& th, & td': {
+              border: 1,
+              borderColor: 'grey.300',
+              p: 1,
+            },
+            '& th': {
+              bgcolor: 'grey.50',
+            },
+          },
+        }}
         dangerouslySetInnerHTML={{ __html: renderedContent }}
       />
-    </div>
+    </Paper>
   );
 };

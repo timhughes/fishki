@@ -1,13 +1,3 @@
-:root {
-  --primary-color: #007bff;
-  --success-color: #28a745;
-  --secondary-color: #6c757d;
-  --danger-color: #dc3545;
-  --background-color: #f8f9fa;
-  --border-color: #ced4da;
-  --text-color: #212529;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -15,16 +5,13 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--text-color);
   line-height: 1.5;
 }
 
 /* Markdown content styling */
 .markdown-content {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.6;
 }
 
@@ -36,18 +23,6 @@ body {
 .markdown-content h6 {
   margin: 1.5em 0 0.5em;
   line-height: 1.2;
-}
-
-.markdown-content h1 {
-  font-size: 2em;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 0.3em;
-}
-
-.markdown-content h2 {
-  font-size: 1.5em;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 0.3em;
 }
 
 .markdown-content p {
@@ -65,14 +40,12 @@ body {
 }
 
 .markdown-content code {
-  background-color: rgba(0, 0, 0, 0.05);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 .markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.05);
   padding: 1em;
   border-radius: 4px;
   overflow-x: auto;
@@ -80,24 +53,12 @@ body {
 }
 
 .markdown-content pre code {
-  background-color: transparent;
   padding: 0;
-}
-
-.markdown-content a {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-.markdown-content a:hover {
-  text-decoration: underline;
 }
 
 .markdown-content blockquote {
   margin: 1em 0;
   padding: 0 1em;
-  color: var(--secondary-color);
-  border-left: 0.25em solid var(--border-color);
 }
 
 .markdown-content img {
@@ -108,7 +69,6 @@ body {
 .markdown-content hr {
   height: 1px;
   border: none;
-  background-color: var(--border-color);
   margin: 2em 0;
 }
 
@@ -120,10 +80,5 @@ body {
 
 .markdown-content th,
 .markdown-content td {
-  border: 1px solid var(--border-color);
   padding: 0.5em;
-}
-
-.markdown-content th {
-  background-color: rgba(0, 0, 0, 0.05);
 }
