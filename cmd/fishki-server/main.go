@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -66,11 +67,21 @@ func main() {
 
 
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	fmt.Printf("Starting server on port %s\n", port)
-	log.Printf("Running in %s mode\n", os.Getenv("NODE_ENV"))
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+// Parse command line flags
+bind := flag.String("bind", "localhost", "Bind address")
+port := flag.String("port", "8080", "Port to listen on")
+flag.Parse()
+
+// Allow PORT env var to override flag for backward compatibility
+if envPort := os.Getenv("PORT"); envPort != "" {
+    *port = envPort
+}
+
+addr := fmt.Sprintf("%s:%s", *bind, *port)
+log.Printf("Server starting on http://%s", addr)
+log.Printf("API endpoint: http://%s/api", addr)
+log.Printf("Web interface available at http://%s", addr)
+log.Printf("Running in %s mode", os.Getenv("NODE_ENV"))
+
+log.Fatal(http.ListenAndServe(addr, mux))
 }
