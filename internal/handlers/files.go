@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
+"bytes"
+"encoding/json"
+"fmt"
+"net/http"
+"os"
+"path/filepath"
+"sort"
+"strings"
 )
 
 // FileInfo represents a file or folder in the wiki
@@ -66,133 +67,149 @@ func (h *Handler) handleFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFileTree(root string) ([]FileInfo, error) {
-	files := make([]FileInfo, 0)
+    var files []FileInfo
+    var allPaths []string
+    pathMap := make(map[string]*FileInfo)
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+    // First, collect all valid paths
+    err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+        if err != nil {
+            return err
+        }
 
-		// Skip git directory
-		if info.IsDir() && info.Name() == ".git" {
-			return filepath.SkipDir
-		}
+        // Skip git directory
+        if info.IsDir() && info.Name() == ".git" {
+            return filepath.SkipDir
+        }
 
-		// Skip hidden files
-		if strings.HasPrefix(info.Name(), ".") {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
+        // Skip hidden files
+        if strings.HasPrefix(info.Name(), ".") {
+            if info.IsDir() {
+                return filepath.SkipDir
+            }
+            return nil
+        }
 
-		// Get relative path from root
-		relPath, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
+        // Get relative path from root
+        relPath, err := filepath.Rel(root, path)
+        if err != nil {
+            return err
+        }
 
-		// Skip root directory
-		if relPath == "." {
-			return nil
-		}
+        // Skip root directory
+        if relPath == "." {
+            return nil
+        }
 
-		fileInfo := FileInfo{
-			Name: info.Name(),
-			Path: relPath,
-			Type: "file",
-		}
+        // Store all valid paths
+        if info.IsDir() || filepath.Ext(info.Name()) == ".md" {
+            fmt.Printf("Found path: %s (isDir: %v)\n", relPath, info.IsDir())
+            allPaths = append(allPaths, relPath)
+            pathMap[relPath] = &FileInfo{
+                Name: info.Name(),
+                Path: relPath,
+                Type: "file",
+            }
+            if info.IsDir() {
+                pathMap[relPath].Type = "folder"
+                pathMap[relPath].Children = make([]FileInfo, 0)
+            }
+        }
 
-		if info.IsDir() {
-			fileInfo.Type = "folder"
-			files = append(files, fileInfo)
-		} else if filepath.Ext(info.Name()) == ".md" {
-			files = append(files, fileInfo)
-		}
+        return nil
+    })
 
-		return nil
-	})
+    if err != nil {
+        return nil, err
+    }
 
-	if err != nil {
-		return nil, err
-	}
+    // Sort paths by depth (ensures parents are processed before children)
+    sort.Slice(allPaths, func(i, j int) bool {
+        depthI := strings.Count(allPaths[i], string(filepath.Separator))
+        depthJ := strings.Count(allPaths[j], string(filepath.Separator))
+        if depthI != depthJ {
+            return depthI < depthJ
+        }
+        return allPaths[i] < allPaths[j]
+    })
 
-	// Build tree structure
-	return buildTree(files), nil
+    fmt.Printf("\nAll collected paths: %v\n", allPaths)
+
+    // Sort paths by depth to process parents before children
+    sort.Slice(allPaths, func(i, j int) bool {
+        depthI := strings.Count(allPaths[i], string(filepath.Separator))
+        depthJ := strings.Count(allPaths[j], string(filepath.Separator))
+        if depthI != depthJ {
+            return depthI < depthJ
+        }
+        return allPaths[i] < allPaths[j]
+    })
+
+    fmt.Printf("\nSorted paths: %v\n", allPaths)
+
+    // First pass: Build tree structure using pointers
+    var rootFiles []*FileInfo
+    for _, path := range allPaths {
+        dir := filepath.Dir(path)
+        
+        if dir == "." {
+            fmt.Printf("Adding to root: %s\n", path)
+            rootFiles = append(rootFiles, pathMap[path])
+        } else {
+            fmt.Printf("Looking for parent directory: %s for path: %s\n", dir, path)
+            if parent, ok := pathMap[dir]; ok {
+                fmt.Printf("Found parent, adding to children: %s -> %s\n", dir, path)
+                if parent.Children == nil {
+                    parent.Children = make([]FileInfo, 0)
+                }
+                parent.Children = append(parent.Children, *pathMap[path])
+            } else {
+                fmt.Printf("Warning: Could not find parent directory: %s for path: %s\n", dir, path)
+            }
+        }
+    }
+
+    // Second pass: Convert pointer slice to value slice for return
+    files = make([]FileInfo, len(rootFiles))
+    for i, file := range rootFiles {
+        files[i] = *file
+    }
+
+    // Sort all levels of the tree
+    sortFileTree(files)
+
+    fmt.Printf("\nFinal tree structure:\n")
+    printTree(files, 0)
+    
+    return files, nil
 }
 
-func buildTree(files []FileInfo) []FileInfo {
-	root := make(map[string]*FileInfo)
-	var result []FileInfo
+func printTree(files []FileInfo, level int) {
+    indent := strings.Repeat("  ", level)
+    for _, file := range files {
+        childCount := len(file.Children)
+        fmt.Printf("%s- %s (%s, children: %d)\n", indent, file.Path, file.Type, childCount)
+        if file.Type == "folder" {
+            printTree(file.Children, level+1)
+        }
+    }
+}
 
-	// First pass: ensure all directories exist
-	for _, file := range files {
-		dir := filepath.Dir(file.Path)
-		if dir != "." {
-			parts := strings.Split(dir, string(filepath.Separator))
-			currentPath := ""
-			for _, part := range parts {
-				if currentPath != "" {
-					currentPath = filepath.Join(currentPath, part)
-				} else {
-					currentPath = part
-				}
+func sortFileTree(files []FileInfo) {
+    // Sort current level
+    sort.Slice(files, func(i, j int) bool {
+        // Folders before files
+        if files[i].Type != files[j].Type {
+            return files[i].Type == "folder"
+        }
+        // Alphabetical within same type
+        return files[i].Name < files[j].Name
+    })
 
-				if _, exists := root[currentPath]; !exists {
-					root[currentPath] = &FileInfo{
-						Name:     part,
-						Type:     "folder",
-						Path:     currentPath,
-						Children: make([]FileInfo, 0),
-					}
-				}
-			}
-		}
-	}
-
-	// Second pass: add all files and folders
-	for _, file := range files {
-		root[file.Path] = &FileInfo{
-			Name:     file.Name,
-			Type:     file.Type,
-			Path:     file.Path,
-			Children: make([]FileInfo, 0),
-		}
-	}
-
-	// Third pass: build tree structure
-	for path, info := range root {
-		dir := filepath.Dir(path)
-		if dir == "." {
-			result = append(result, *info)
-		} else if parent, ok := root[dir]; ok {
-			parent.Children = append(parent.Children, *info)
-		}
-	}
-
-	// Sort results for consistency
-	sort.Slice(result, func(i, j int) bool {
-		// Folders before files
-		if result[i].Type != result[j].Type {
-			return result[i].Type == "folder"
-		}
-		// Alphabetical within same type
-		return result[i].Name < result[j].Name
-	})
-
-	// Sort children recursively
-	for i := range result {
-		if result[i].Type == "folder" {
-			sort.Slice(result[i].Children, func(j, k int) bool {
-				// Folders before files
-				if result[i].Children[j].Type != result[i].Children[k].Type {
-					return result[i].Children[j].Type == "folder"
-				}
-				// Alphabetical within same type
-				return result[i].Children[j].Name < result[i].Children[k].Name
-			})
-		}
-	}
-
-	return result
+    // Sort children recursively
+    for i := range files {
+        if files[i].Type == "folder" && len(files[i].Children) > 0 {
+            sortFileTree(files[i].Children)
+        }
+    }
 }
