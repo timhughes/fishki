@@ -15,7 +15,7 @@ help:  ## These help instructions
 	@sed -rn 's/^([a-zA-Z0-9_-]+):.* ## (.*)$$/"\1" "\2"/p' < $(MAKEFILE_LIST)|xargs printf "$(_GREEN)make %-20s$(_RESET) # %s\n"
 
 
-all: build test
+all: frontend-test frontend-test test build 
 
 build: ## Build the application
 	$(GO_BUILD) -o bin/fishki-server ./cmd/fishki-server
