@@ -83,7 +83,7 @@ const ViewPage = () => {
   );
 };
 
-const EditPage = () => {
+const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
   const [initialContent, setInitialContent] = React.useState('');
@@ -106,7 +106,10 @@ const EditPage = () => {
     loadContent();
   }, [path]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!pageExists) {
+      onPageCreated(); // Trigger refresh only for new pages
+    }
     navigate(`/page/${path}`);
   };
 
@@ -132,6 +135,7 @@ function App() {
   const [drawerOpen, setDrawerOpen] = React.useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
   const handleFileSelect = (path: string) => {
     if (location.pathname.startsWith('/edit/')) {
@@ -139,6 +143,10 @@ function App() {
     } else {
       navigate(`/page/${path}`);
     }
+  };
+
+  const handlePageCreated = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const toggleDrawer = () => {
@@ -180,6 +188,7 @@ function App() {
           <PageBrowser
             onFileSelect={handleFileSelect}
             selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
+            refreshTrigger={refreshTrigger}
           />
         </Box>
 
@@ -197,7 +206,7 @@ function App() {
           <Toolbar /> {/* Spacer to push content below AppBar */}
           <Routes>
             <Route path="/page/*" element={<ViewPage />} />
-            <Route path="/edit/*" element={<EditPage />} />
+            <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
             <Route path="/*" element={<ViewPage />} />
           </Routes>
         </Box>

@@ -38,8 +38,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       onSave();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save content');
-    } finally {
-      setSaving(false);
+      setSaving(false); // Only reset saving if there's an error
     }
   };
 

@@ -7,6 +7,7 @@ import { api } from '../api/client';
 interface PageBrowserProps {
   onFileSelect: (path: string) => void;
   selectedFile?: string;
+  refreshTrigger?: number;  // Changes to this prop will trigger a refresh
 }
 
 // Helper function to remove .md extension
@@ -15,25 +16,27 @@ const removeMdExtension = (path: string): string => {
   return path.replace(/\.md$/, '');
 };
 
-export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selectedFile }) => {
+export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selectedFile, refreshTrigger }) => {
   const [files, setFiles] = React.useState<FileInfo[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
 
-  React.useEffect(() => {
-    const loadFiles = async () => {
-      try {
-        const fileTree = await api.getFiles();
-        setFiles(fileTree);
-        setLoading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load files');
-        setLoading(false);
-      }
-    };
-
-    loadFiles();
+  const loadFiles = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const fileTree = await api.getFiles();
+      setFiles(fileTree);
+      setError(undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load files');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    loadFiles();
+  }, [loadFiles, refreshTrigger]);  // Refresh when trigger changes
 
   const renderFileTree = (items: FileInfo[], level = 0) => {
     return items.map((item) => {
@@ -85,7 +88,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
     });
   };
 
-  if (loading) {
+  if (loading && files.length === 0) {  // Show loading only on initial load
     return (
       <Box
         sx={{
