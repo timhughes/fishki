@@ -9,8 +9,7 @@ interface MarkdownViewerProps {
 }
 
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit }) => {
-  const [_, setContent] = React.useState<string>('');
-  const [renderedContent, setRenderedContent] = React.useState<string>('');
+  const [content, setContent] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
 
@@ -19,9 +18,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit
       try {
         setLoading(true);
         const fileContent = await api.load(filePath);
-        setContent(fileContent);
         const rendered = await api.render(fileContent);
-        setRenderedContent(rendered);
+        setContent(rendered);
         setError(undefined);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load content');
@@ -30,27 +28,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit
       }
     };
 
-    if (filePath) {
-      loadContent();
-    }
+    loadContent();
   }, [filePath]);
-
-  if (!filePath) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-        }}
-      >
-        <Typography variant="body1" color="text.secondary">
-          No file selected
-        </Typography>
-      </Box>
-    );
-  }
 
   if (loading) {
     return (
@@ -88,10 +67,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           mb: 2,
         }}
       >
+        <Typography variant="h6" color="text.secondary">
+          {filePath.split('/').pop()?.replace(/\.md$/, '')}
+        </Typography>
         <Button
           variant="contained"
           color="primary"
@@ -140,7 +123,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onEdit
             },
           },
         }}
-        dangerouslySetInnerHTML={{ __html: renderedContent }}
+        dangerouslySetInnerHTML={{ __html: content }}
       />
     </Paper>
   );

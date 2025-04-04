@@ -1,13 +1,14 @@
 import React from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, IconButton, Breadcrumbs, Link } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import { Edit as EditIcon, Folder as FolderIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { api } from './api/client';
 
-// Create a theme instance
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -29,33 +30,121 @@ const theme = createTheme({
   },
 });
 
-function App() {
-  const [selectedFile, setSelectedFile] = React.useState<string>();
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [currentContent, setCurrentContent] = React.useState<string>('');
-  const [drawerOpen, setDrawerOpen] = React.useState(true);
+const PathBreadcrumbs = ({ path }: { path: string }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isEditMode = location.pathname.startsWith('/edit/');
+  const parts = path.split('/');
 
-  const handleFileSelect = async (path: string) => {
-    try {
-      setSelectedFile(path);
-      setIsEditing(false);
-      const content = await api.load(path);
-      setCurrentContent(content);
-    } catch (error) {
-      console.error('Failed to load file:', error);
-    }
-  };
+  return (
+    <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 2, flex: 1, color: 'white' }}>
+      {parts.map((part, index) => {
+        const currentPath = parts.slice(0, index + 1).join('/');
+        const isLast = index === parts.length - 1;
 
+        return isLast ? (
+          <Box key={part} sx={{ display: 'flex', alignItems: 'center' }}>
+            <DescriptionIcon sx={{ mr: 0.5, fontSize: 20 }} />
+            <Typography color="white" sx={{ display: 'flex', alignItems: 'center' }}>
+              {part.replace(/\.md$/, '')}
+              {isEditMode && (
+                <EditIcon sx={{ ml: 1, fontSize: 16 }} />
+              )}
+            </Typography>
+          </Box>
+        ) : part ? (
+          <Link
+            key={part}
+            component="button"
+            onClick={() => navigate(`/page/${currentPath}`)}
+            sx={{ 
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+          >
+            <FolderIcon sx={{ mr: 0.5, fontSize: 20 }} />
+            {part}
+          </Link>
+        ) : null;
+      })}
+    </Breadcrumbs>
+  );
+};
+
+// Route components
+const ViewPage = () => {
+  const { '*': path } = useParams();
+  const navigate = useNavigate();
+  
   const handleEdit = () => {
-    setIsEditing(true);
+    navigate(`/edit/${path}`);
   };
+
+  return (
+    <MarkdownViewer
+      filePath={path || ''}
+      onEdit={handleEdit}
+    />
+  );
+};
+
+const EditPage = () => {
+  const { '*': path } = useParams();
+  const navigate = useNavigate();
+  const [initialContent, setInitialContent] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadContent = async () => {
+      try {
+        const content = await api.load(path || '');
+        setInitialContent(content);
+      } catch (error) {
+        console.error('Failed to load content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadContent();
+  }, [path]);
 
   const handleSave = () => {
-    setIsEditing(false);
+    navigate(`/page/${path}`);
   };
 
   const handleCancel = () => {
-    setIsEditing(false);
+    navigate(`/page/${path}`);
+  };
+
+  if (loading) {
+    return null;
+  }
+
+  return (
+    <MarkdownEditor
+      filePath={path || ''}
+      initialContent={initialContent}
+      onSave={handleSave}
+      onCancel={handleCancel}
+    />
+  );
+};
+
+function App() {
+  const [drawerOpen, setDrawerOpen] = React.useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { '*': currentPath } = useParams();
+
+  const handleFileSelect = (path: string) => {
+    if (location.pathname.startsWith('/edit/')) {
+      navigate(`/edit/${path}`);
+    } else {
+      navigate(`/page/${path}`);
+    }
   };
 
   const toggleDrawer = () => {
@@ -77,9 +166,10 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div">
+            <Typography variant="h6" noWrap component="div" sx={{ mr: 2 }}>
               Fishki Wiki
             </Typography>
+            {currentPath && <PathBreadcrumbs path={currentPath} />}
           </Toolbar>
         </AppBar>
 
@@ -96,7 +186,7 @@ function App() {
           <Toolbar /> {/* Spacer to push content below AppBar */}
           <PageBrowser
             onFileSelect={handleFileSelect}
-            selectedFile={selectedFile}
+            selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
           />
         </Box>
 
@@ -112,21 +202,11 @@ function App() {
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}
-          {selectedFile && (
-            isEditing ? (
-              <MarkdownEditor
-                filePath={selectedFile}
-                initialContent={currentContent}
-                onSave={handleSave}
-                onCancel={handleCancel}
-              />
-            ) : (
-              <MarkdownViewer
-                filePath={selectedFile}
-                onEdit={handleEdit}
-              />
-            )
-          )}
+          <Routes>
+            <Route path="/page/*" element={<ViewPage />} />
+            <Route path="/edit/*" element={<EditPage />} />
+            <Route path="/*" element={<ViewPage />} />
+          </Routes>
         </Box>
       </Box>
     </ThemeProvider>
