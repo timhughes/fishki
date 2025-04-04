@@ -9,6 +9,12 @@ interface PageBrowserProps {
   selectedFile?: string;
 }
 
+// Helper function to remove .md extension
+const removeMdExtension = (path: string): string => {
+  if (!path) return path;
+  return path.replace(/\.md$/, '');
+};
+
 export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selectedFile }) => {
   const [files, setFiles] = React.useState<FileInfo[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -30,48 +36,53 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
   }, []);
 
   const renderFileTree = (items: FileInfo[], level = 0) => {
-    return items.map((item) => (
-      <Box key={item.path} sx={{ ml: level * 2 }}>
-        <ListItem
-          disablePadding
-          sx={{
-            '& .MuiListItemButton-root': {
-              borderRadius: 1,
-              mb: 0.5,
-            },
-          }}
-        >
-          <ListItemButton
-            selected={selectedFile === item.path}
-            onClick={() => item.type === 'file' && onFileSelect(item.path)}
-            disabled={item.type !== 'file'}
-            dense
+    return items.map((item) => {
+      const cleanPath = removeMdExtension(item.path);
+      const cleanSelected = removeMdExtension(selectedFile || '');
+
+      return (
+        <Box key={item.path} sx={{ ml: level * 2 }}>
+          <ListItem
+            disablePadding
+            sx={{
+              '& .MuiListItemButton-root': {
+                borderRadius: 1,
+                mb: 0.5,
+              },
+            }}
           >
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              {item.type === 'folder' ? (
-                <FolderIcon color="action" fontSize="small" />
-              ) : (
-                <FileIcon color="action" fontSize="small" />
-              )}
-            </ListItemIcon>
-            <ListItemText
-              primary={item.type === 'folder' ? item.name : item.name.replace(/\.md$/, '')}
-              primaryTypographyProps={{
-                variant: 'body2',
-                sx: {
-                  fontWeight: selectedFile === item.path ? 500 : 400,
-                },
-              }}
-            />
-          </ListItemButton>
-        </ListItem>
-        {item.children && (
-          <List disablePadding>
-            {renderFileTree(item.children, level + 1)}
-          </List>
-        )}
-      </Box>
-    ));
+            <ListItemButton
+              selected={cleanSelected === cleanPath}
+              onClick={() => item.type === 'file' && onFileSelect(cleanPath)}
+              disabled={item.type !== 'file'}
+              dense
+            >
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                {item.type === 'folder' ? (
+                  <FolderIcon color="action" fontSize="small" />
+                ) : (
+                  <FileIcon color="action" fontSize="small" />
+                )}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.type === 'folder' ? item.name : removeMdExtension(item.name)}
+                primaryTypographyProps={{
+                  variant: 'body2',
+                  sx: {
+                    fontWeight: cleanSelected === cleanPath ? 500 : 400,
+                  },
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+          {item.children && (
+            <List disablePadding>
+              {renderFileTree(item.children, level + 1)}
+            </List>
+          )}
+        </Box>
+      );
+    });
   };
 
   if (loading) {

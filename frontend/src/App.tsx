@@ -1,13 +1,24 @@
 import React from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, AppBar, Toolbar, Typography, IconButton, Breadcrumbs, Link } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Edit as EditIcon, Folder as FolderIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
+import { CreatePage } from './components/CreatePage';
 import { api } from './api/client';
+
+// Helper functions for path handling
+const addMdExtension = (path: string): string => {
+  if (!path) return path;
+  return path.endsWith('.md') ? path : `${path}.md`;
+};
+
+const removeMdExtension = (path: string): string => {
+  if (!path) return path;
+  return path.replace(/\.md$/, '');
+};
 
 const theme = createTheme({
   palette: {
@@ -30,62 +41,43 @@ const theme = createTheme({
   },
 });
 
-const PathBreadcrumbs = ({ path }: { path: string }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isEditMode = location.pathname.startsWith('/edit/');
-  const parts = path.split('/');
-
-  return (
-    <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 2, flex: 1, color: 'white' }}>
-      {parts.map((part, index) => {
-        const currentPath = parts.slice(0, index + 1).join('/');
-        const isLast = index === parts.length - 1;
-
-        return isLast ? (
-          <Box key={part} sx={{ display: 'flex', alignItems: 'center' }}>
-            <DescriptionIcon sx={{ mr: 0.5, fontSize: 20 }} />
-            <Typography color="white" sx={{ display: 'flex', alignItems: 'center' }}>
-              {part.replace(/\.md$/, '')}
-              {isEditMode && (
-                <EditIcon sx={{ ml: 1, fontSize: 16 }} />
-              )}
-            </Typography>
-          </Box>
-        ) : part ? (
-          <Link
-            key={part}
-            component="button"
-            onClick={() => navigate(`/page/${currentPath}`)}
-            sx={{ 
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' }
-            }}
-          >
-            <FolderIcon sx={{ mr: 0.5, fontSize: 20 }} />
-            {part}
-          </Link>
-        ) : null;
-      })}
-    </Breadcrumbs>
-  );
-};
-
 // Route components
 const ViewPage = () => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
+  const [pageExists, setPageExists] = React.useState<boolean | null>(null);
   
+  React.useEffect(() => {
+    const checkPage = async () => {
+      try {
+        await api.load(addMdExtension(path || ''));
+        setPageExists(true);
+      } catch (err) {
+        setPageExists(false);
+      }
+    };
+    checkPage();
+  }, [path]);
+
   const handleEdit = () => {
     navigate(`/edit/${path}`);
   };
 
+  const handleCreate = () => {
+    navigate(`/edit/${path}`);
+  };
+
+  if (pageExists === null) {
+    return null;
+  }
+
+  if (pageExists === false) {
+    return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
+  }
+
   return (
     <MarkdownViewer
-      filePath={path || ''}
+      filePath={addMdExtension(path || '')}
       onEdit={handleEdit}
     />
   );
@@ -96,14 +88,17 @@ const EditPage = () => {
   const navigate = useNavigate();
   const [initialContent, setInitialContent] = React.useState('');
   const [loading, setLoading] = React.useState(true);
+  const [pageExists, setPageExists] = React.useState(true);
 
   React.useEffect(() => {
     const loadContent = async () => {
       try {
-        const content = await api.load(path || '');
+        const content = await api.load(addMdExtension(path || ''));
         setInitialContent(content);
-      } catch (error) {
-        console.error('Failed to load content:', error);
+        setPageExists(true);
+      } catch (err) {
+        setInitialContent('');
+        setPageExists(false);
       } finally {
         setLoading(false);
       }
@@ -125,8 +120,8 @@ const EditPage = () => {
 
   return (
     <MarkdownEditor
-      filePath={path || ''}
-      initialContent={initialContent}
+      filePath={addMdExtension(path || '')}
+      initialContent={pageExists ? initialContent : `# ${path?.split('/').pop() || 'New Page'}\n\n`}
       onSave={handleSave}
       onCancel={handleCancel}
     />
@@ -137,7 +132,6 @@ function App() {
   const [drawerOpen, setDrawerOpen] = React.useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { '*': currentPath } = useParams();
 
   const handleFileSelect = (path: string) => {
     if (location.pathname.startsWith('/edit/')) {
@@ -166,10 +160,9 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ mr: 2 }}>
+            <Typography variant="h6" noWrap component="div">
               Fishki Wiki
             </Typography>
-            {currentPath && <PathBreadcrumbs path={currentPath} />}
           </Toolbar>
         </AppBar>
 
