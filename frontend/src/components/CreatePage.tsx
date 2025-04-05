@@ -1,6 +1,7 @@
 import React from 'react';
-import { Paper, Box, Typography, Button, Alert } from '@mui/material';
+import { Paper, Box, Typography, Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
+import { removeMdExtension } from '../utils/path';
 
 interface CreatePageProps {
   path: string;
@@ -8,35 +9,41 @@ interface CreatePageProps {
 }
 
 export const CreatePage: React.FC<CreatePageProps> = ({ path, onCreateClick }) => {
+  const displayPath = removeMdExtension(path);
+  const pageName = displayPath.split('/').pop() || '';
+
   return (
     <Paper
       elevation={0}
       sx={{
         maxWidth: '800px',
         margin: '0 auto',
-        p: 3,
+        p: 4,
+        textAlign: 'center',
         bgcolor: 'background.paper',
       }}
     >
-      <Alert 
-        severity="info"
-        sx={{ mb: 3 }}
-        action={
-          <Button
-            color="primary"
-            size="small"
-            variant="contained"
-            onClick={onCreateClick}
-            startIcon={<AddIcon />}
-          >
-            Create Page
-          </Button>
-        }
-      >
-        <Typography variant="body1">
-          The page "{path}" does not exist yet.
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" color="text.primary" gutterBottom>
+          Page Not Found
         </Typography>
-      </Alert>
+        <Typography variant="body1" color="text.secondary">
+          {displayPath ? (
+            <>The page "{pageName}" does not exist yet.</>
+          ) : (
+            <>Select a page from the tree or create a new one.</>
+          )}
+        </Typography>
+      </Box>
+
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={onCreateClick}
+      >
+        {displayPath ? `Create "${pageName}"` : 'Create Page'}
+      </Button>
     </Paper>
   );
 };

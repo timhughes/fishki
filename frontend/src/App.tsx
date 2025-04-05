@@ -8,17 +8,7 @@ import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { CreatePage } from './components/CreatePage';
 import { api } from './api/client';
-
-// Helper functions for path handling
-const addMdExtension = (path: string): string => {
-  if (!path) return path;
-  return path.endsWith('.md') ? path : `${path}.md`;
-};
-
-const removeMdExtension = (path: string): string => {
-  if (!path) return path;
-  return path.replace(/\.md$/, '');
-};
+import { addMdExtension, removeMdExtension } from './utils/path';
 
 const theme = createTheme({
   palette: {
@@ -45,6 +35,8 @@ const theme = createTheme({
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
+  const [notFound, setNotFound] = React.useState(false);
+  const [checking, setChecking] = React.useState(true);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -56,11 +48,46 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
 
   const handleDelete = () => {
     onPageDeleted();
-    navigate('/');
+    setNotFound(true);
   };
+
+  React.useEffect(() => {
+    // Check if page exists when path changes
+    const checkPage = async () => {
+      try {
+        setChecking(true);
+        await api.load(addMdExtension(path || ''));
+        setNotFound(false);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('404')) {
+          setNotFound(true);
+        }
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    if (path) {
+      checkPage();
+    } else {
+      setChecking(false);
+    }
+  }, [path]);
+
+  if (checking) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!path) {
     return <CreatePage path={''} onCreateClick={handleCreate} />;
+  }
+
+  if (notFound) {
+    return <CreatePage path={path} onCreateClick={handleCreate} />;
   }
 
   return (

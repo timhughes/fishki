@@ -20,7 +20,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const [content, setContent] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
-  const [notFound, setNotFound] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string>();
@@ -29,17 +28,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const loadContent = async () => {
       try {
         setLoading(true);
-        setNotFound(false);
         const fileContent = await api.load(filePath);
         const rendered = await api.render(fileContent);
         setContent(rendered);
         setError(undefined);
       } catch (err) {
-        if (err instanceof Error && err.message.includes('404')) {
-          setNotFound(true);
-        } else {
-          setError(err instanceof Error ? err.message : 'Failed to load content');
-        }
+        setError(err instanceof Error ? err.message : 'Failed to load content');
       } finally {
         setLoading(false);
       }
@@ -84,10 +78,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         <CircularProgress />
       </Box>
     );
-  }
-
-  if (notFound) {
-    return <>{onNotFound()}</>;
   }
 
   if (error) {
