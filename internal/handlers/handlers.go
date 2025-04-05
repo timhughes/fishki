@@ -30,14 +30,15 @@ func (h *Handler) SetGitClient(client git.GitClient) {
 func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	h := NewHandler(cfg)
 
-	mux.HandleFunc("/api/files", h.handleFiles)
-	mux.HandleFunc("/api/load", h.loadHandler())
-	mux.HandleFunc("/api/save", h.saveHandler())
-	mux.HandleFunc("/api/delete", h.deleteHandler())
-	mux.HandleFunc("/api/render", h.renderHandler())
-	mux.HandleFunc("/api/init", h.initHandler())
-	mux.HandleFunc("/api/pull", h.pullHandler())
-	mux.HandleFunc("/api/push", h.pushHandler())
+	// Wrap each handler with the access logger middleware
+	mux.Handle("/api/files", AccessLoggerMiddleware(http.HandlerFunc(h.handleFiles)))
+	mux.Handle("/api/load", AccessLoggerMiddleware(http.HandlerFunc(h.loadHandler())))
+	mux.Handle("/api/save", AccessLoggerMiddleware(http.HandlerFunc(h.saveHandler())))
+	mux.Handle("/api/delete", AccessLoggerMiddleware(http.HandlerFunc(h.deleteHandler())))
+	mux.Handle("/api/render", AccessLoggerMiddleware(http.HandlerFunc(h.renderHandler())))
+	mux.Handle("/api/init", AccessLoggerMiddleware(http.HandlerFunc(h.initHandler())))
+	mux.Handle("/api/pull", AccessLoggerMiddleware(http.HandlerFunc(h.pullHandler())))
+	mux.Handle("/api/push", AccessLoggerMiddleware(http.HandlerFunc(h.pushHandler())))
 }
 
 func (h *Handler) initHandler() http.HandlerFunc {
