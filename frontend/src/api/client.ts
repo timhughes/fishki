@@ -12,7 +12,8 @@ class ApiClient {
       if (response.status === 404) {
         throw new Error('404');
       }
-      throw new Error(`API request failed: ${response.statusText}`);
+      const message = await response.text();
+      throw new Error(message || `API request failed: ${response.statusText}`);
     }
 
     const contentType = response.headers.get('content-type');

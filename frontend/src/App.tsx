@@ -35,9 +35,6 @@ const theme = createTheme({
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
-  const [notFound, setNotFound] = React.useState(false);
-  const [checking, setChecking] = React.useState(true);
-  const [error, setError] = React.useState<string>();
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -49,61 +46,10 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
 
   const handleDelete = () => {
     onPageDeleted();
-    setNotFound(true);
   };
-
-  React.useEffect(() => {
-    // Check if page exists when path changes
-    const checkPage = async () => {
-      try {
-        setChecking(true);
-        setError(undefined);
-        await api.load(addMdExtension(path || ''));
-        setNotFound(false);
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message === '404') {
-            setNotFound(true);
-          } else {
-            setError(err.message);
-          }
-        }
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    if (path) {
-      checkPage();
-    } else {
-      setChecking(false);
-      setNotFound(false);
-      setError(undefined);
-    }
-  }, [path]);
-
-  if (checking) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   if (!path) {
     return <CreatePage path={''} onCreateClick={handleCreate} />;
-  }
-
-  if (notFound) {
-    return <CreatePage path={path} onCreateClick={handleCreate} />;
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
   }
 
   return (
