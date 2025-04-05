@@ -73,10 +73,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     setDeleteError(undefined);
   };
 
+  if (!filePath) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography>No file selected</Typography>
+      </Box>
+    );
+  }
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column', gap: 2 }}>
         <CircularProgress />
+        <Typography>Loading content...</Typography>
       </Box>
     );
   }
@@ -88,7 +97,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   if (error) {
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error">Error: {error}</Alert>
       </Box>
     );
   }
@@ -137,6 +146,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           </Box>
         </Box>
         <Box
+          component="article"
+          aria-label="test"
           className="markdown-content"
           sx={{
             '& img': {

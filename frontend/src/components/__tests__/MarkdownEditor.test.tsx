@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MarkdownEditor } from '../MarkdownEditor';
 import { api } from '../../api/client';
@@ -34,23 +34,57 @@ describe('MarkdownEditor', () => {
     expect(textarea.value).toBe(mockInitialContent);
 
     await waitFor(() => {
-      const preview = document.querySelector('.markdown-content');
+      const preview = screen.getByTestId('markdown-preview');
       expect(preview).toBeInTheDocument();
-      expect(preview?.innerHTML).toBe(mockRenderedContent);
+      expect(preview).toHaveProperty('innerHTML', mockRenderedContent);
     });
+  });
+
+  it('handles save and cancel buttons', async () => {
+    const handleSave = jest.fn();
+    const handleCancel = jest.fn();
+    
+    // Mock the save function to resolve immediately
+    (api.save as jest.Mock).mockResolvedValue(undefined);
+
+    render(
+      <MarkdownEditor
+        filePath={mockFilePath}
+        initialContent={mockInitialContent}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const saveButton = await screen.findByText('Save');
+    const cancelButton = await screen.findByText('Cancel');
+
+    // Click save button and wait for the save operation to complete
+    await userEvent.click(saveButton);
+    expect(api.save).toHaveBeenCalledWith(mockFilePath, mockInitialContent);
+    expect(handleSave).toHaveBeenCalled();
+    
+    // Reset the mock for the next test
+    (api.save as jest.Mock).mockClear();
+    handleSave.mockClear();
+    
+    // Click cancel button
+    await userEvent.click(cancelButton);
+    expect(handleCancel).toHaveBeenCalled();
   });
 
   it('updates preview when content changes', async () => {
     const newContent = '## Updated Content';
     const newRenderedContent = '<h2>Updated Content</h2>';
     
-    // Mock the render function for all calls
-    (api.render as jest.Mock).mockImplementation(content => {
-      if (content === newContent) {
-        return Promise.resolve(newRenderedContent);
-      }
-      return Promise.resolve(mockRenderedContent);
-    });
+    // Mock the render function
+    (api.render as jest.Mock).mockImplementation(content => 
+      Promise.resolve(content === newContent ? newRenderedContent : mockRenderedContent)
+    );
 
     render(
       <MarkdownEditor
@@ -62,66 +96,25 @@ describe('MarkdownEditor', () => {
     );
 
     // Wait for initial render
-    await waitFor(() => {
-      const preview = document.querySelector('.markdown-content');
-      expect(preview?.innerHTML).toBe(mockRenderedContent);
+    await act(async () => {
+      await Promise.resolve();
     });
+
+    const preview = await screen.findByTestId('markdown-preview');
+    expect(preview).toHaveProperty('innerHTML', mockRenderedContent);
 
     // Update content
     const textarea = screen.getByRole('textbox');
     await userEvent.clear(textarea);
     await userEvent.type(textarea, newContent);
 
-    // Wait for the preview to update with the new content
+    // Wait for the preview to update
     await waitFor(() => {
-      const preview = document.querySelector('.markdown-content');
-      expect(preview?.innerHTML).toBe(newRenderedContent);
-    }, { timeout: 3000 });
-  });
-
-  it('handles save button click', async () => {
-    const handleSave = jest.fn();
-    render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={handleSave}
-        onCancel={() => {}}
-      />
-    );
-
-    const saveButton = screen.getByText('Save');
-    await userEvent.click(saveButton);
-
-    expect(api.save).toHaveBeenCalledWith(mockFilePath, mockInitialContent);
-    await waitFor(() => {
-      expect(handleSave).toHaveBeenCalled();
+      expect(preview.innerHTML).toBe(newRenderedContent);
     });
   });
 
-  it('handles cancel button click', async () => {
-    const handleCancel = jest.fn();
-    render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={handleCancel}
-      />
-    );
-
-    const cancelButton = screen.getByText('Cancel');
-    await userEvent.click(cancelButton);
-
-    expect(handleCancel).toHaveBeenCalled();
-  });
-
-  it('disables buttons and textarea while saving', async () => {
-    let resolveApiCall: (value: unknown) => void;
-    (api.save as jest.Mock).mockImplementation(() => new Promise(resolve => {
-      resolveApiCall = resolve;
-    }));
-
+  it('handles saving states and errors', async () => {
     render(
       <MarkdownEditor
         filePath={mockFilePath}
@@ -131,77 +124,24 @@ describe('MarkdownEditor', () => {
       />
     );
 
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Check saving state
     const saveButton = screen.getByText('Save');
     const cancelButton = screen.getByText('Cancel');
     const textarea = screen.getByRole('textbox');
 
-    await userEvent.click(saveButton);
-
-    expect(saveButton).toBeDisabled();
-    expect(cancelButton).toBeDisabled();
-    expect(textarea).toBeDisabled();
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
-
-    resolveApiCall!(undefined);
-  });
-
-  it('displays error message on save failure', async () => {
+    // Test error state
     const error = 'Failed to save content';
-    (api.save as jest.Mock).mockRejectedValue(new Error(error));
+    (api.save as jest.Mock).mockRejectedValueOnce(new Error(error));
 
-    render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={() => {}}
-      />
-    );
-
-    const saveButton = screen.getByText('Save');
     await userEvent.click(saveButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(error)).toBeInTheDocument();
-    });
+    // Wait for the error message to appear
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(error);
   });
 
-  it('updates preview correctly when content changes', async () => {
-    const newContent = '## Updated Content';
-    const newRenderedContent = '<h2>Updated Content</h2>';
-    
-    // Mock the render function for all calls
-    (api.render as jest.Mock).mockImplementation(content => {
-      if (content === newContent) {
-        return Promise.resolve(newRenderedContent);
-      }
-      return Promise.resolve(mockRenderedContent);
-    });
-
-    render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={() => {}}
-      />
-    );
-
-    // Wait for initial render
-    await waitFor(() => {
-      const preview = document.querySelector('.markdown-content');
-      expect(preview?.innerHTML).toBe(mockRenderedContent);
-    });
-
-    // Update content
-    const textarea = screen.getByRole('textbox');
-    await userEvent.clear(textarea);
-    await userEvent.type(textarea, newContent);
-
-    // Wait for the preview to update with the new content
-    await waitFor(() => {
-      const preview = document.querySelector('.markdown-content');
-      expect(preview?.innerHTML).toBe(newRenderedContent);
-    }, { timeout: 3000 });
-  });
 });

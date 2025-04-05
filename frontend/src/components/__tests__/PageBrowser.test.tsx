@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PageBrowser } from '../PageBrowser';
 import { api } from '../../api/client';
@@ -11,16 +11,18 @@ jest.mock('../../api/client', () => ({
 }));
 
 describe('PageBrowser', () => {
-  const mockFiles = [
-    {
-      name: 'welcome.md',
-      type: 'file',
-      path: 'welcome.md',
-    },
-  ];
+  const mockFiles = {
+    files: [
+      {
+        name: 'welcome.md',
+        type: 'file',
+        path: 'welcome.md',
+      }
+    ]
+  };
 
   beforeEach(() => {
-    (api.getFiles as jest.Mock).mockResolvedValue(mockFiles);
+    (api.getFiles as jest.Mock).mockResolvedValue(mockFiles.files);
   });
 
   it('renders loading state initially', () => {
@@ -31,32 +33,35 @@ describe('PageBrowser', () => {
   it('renders files after loading', async () => {
     render(<PageBrowser onFileSelect={() => {}} />);
     
-    await waitFor(() => {
-      const welcomeText = screen.getByText((content) => content.includes('welcome'));
-      expect(welcomeText).toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
     });
+
+    const welcomeText = await screen.findByText('welcome');
+    expect(welcomeText).toBeInTheDocument();
   });
 
   it('calls onFileSelect when clicking a file', async () => {
     const handleFileSelect = jest.fn();
     render(<PageBrowser onFileSelect={handleFileSelect} />);
     
-    await waitFor(() => {
-      const welcomeText = screen.getByText((content) => content.includes('welcome'));
-      expect(welcomeText).toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
     });
 
-    const fileItem = screen.getByText((content) => content.includes('welcome'));
-    await userEvent.click(fileItem);
+    const welcomeText = await screen.findByText('welcome');
+    await userEvent.click(welcomeText);
     expect(handleFileSelect).toHaveBeenCalledWith('welcome.md');
   });
 
   it('highlights selected file', async () => {
     render(<PageBrowser onFileSelect={() => {}} selectedFile="welcome.md" />);
     
-    await waitFor(() => {
-      const fileElement = screen.getByText((content) => content.includes('welcome')).closest('.file-item');
-      expect(fileElement).toHaveClass('selected');
+    await act(async () => {
+      await Promise.resolve();
     });
+
+    const fileItem = await screen.findByRole('button', { name: /welcome/i });
+    expect(fileItem).toHaveClass('file-item', 'selected');
   });
 });

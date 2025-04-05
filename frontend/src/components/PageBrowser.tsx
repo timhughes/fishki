@@ -56,9 +56,10 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
           >
             <ListItemButton
               selected={cleanSelected === cleanPath}
-              onClick={() => item.type === 'file' && onFileSelect(cleanPath)}
+              onClick={() => item.type === 'file' && onFileSelect(item.path)}
               disabled={item.type !== 'file'}
               dense
+              className={`file-item ${cleanSelected === cleanPath ? 'selected' : ''}`}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>
                 {item.type === 'folder' ? (
@@ -96,9 +97,12 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
           justifyContent: 'center',
           alignItems: 'center',
           height: '100%',
+          flexDirection: 'column',
+          gap: 2,
         }}
       >
         <CircularProgress />
+        <ListItemText primary="Loading files..." />
       </Box>
     );
   }

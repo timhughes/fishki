@@ -79,9 +79,10 @@ describe('ApiClient', () => {
         text: () => Promise.resolve(errorMessage)
       });
 
-      await expect(client.getFiles()).rejects.toEqual({
+      await expect(client.getFiles()).rejects.toMatchObject({
         message: errorMessage,
-        status: 404
+        status: 404,
+        name: 'ApiError'
       });
     });
   });

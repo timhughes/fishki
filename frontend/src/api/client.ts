@@ -1,6 +1,14 @@
-class ApiClient {
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export class ApiClient {
   private async request(url: string, options: RequestInit = {}) {
     const response = await fetch(url, {
+      method: options.method || 'GET',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -9,11 +17,11 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('404');
-      }
       const message = await response.text();
-      throw new Error(message || `API request failed: ${response.statusText}`);
+      throw new ApiError(
+        response.status,
+        message || `API request failed: ${response.statusText}`
+      );
     }
 
     const contentType = response.headers.get('content-type');
@@ -33,11 +41,22 @@ class ApiClient {
     return this.request(`/api/load?filename=${encodeURIComponent(filename)}`);
   }
 
+  async init(path: string) {
+    return this.request('/api/init', {
+      method: 'POST',
+      body: JSON.stringify({ path }),
+    });
+  }
+
   async save(filename: string, content: string) {
     return this.request('/api/save', {
       method: 'POST',
       body: JSON.stringify({ filename, content }),
     });
+  }
+
+  async getStatus() {
+    return this.request('/api/status');
   }
 
   async render(markdown: string) {
