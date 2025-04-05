@@ -9,6 +9,9 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('404');
+      }
       throw new Error(`API request failed: ${response.statusText}`);
     }
 

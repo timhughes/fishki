@@ -62,7 +62,7 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
         setNotFound(false);
       } catch (err) {
         if (err instanceof Error) {
-          if (err.message.includes('404')) {
+          if (err.message === '404') {
             setNotFound(true);
           } else {
             setError(err.message);
@@ -122,16 +122,25 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
   const [initialContent, setInitialContent] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [pageExists, setPageExists] = React.useState(true);
+  const [error, setError] = React.useState<string>();
 
   React.useEffect(() => {
     const loadContent = async () => {
       try {
+        setLoading(true);
+        setError(undefined);
         const content = await api.load(addMdExtension(path || ''));
         setInitialContent(content);
         setPageExists(true);
       } catch (err) {
-        setInitialContent('');
-        setPageExists(false);
+        if (err instanceof Error) {
+          if (err.message === '404') {
+            setInitialContent(`# ${path?.split('/').pop() || 'New Page'}\n\n`);
+            setPageExists(false);
+          } else {
+            setError(err.message);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -158,10 +167,18 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
     );
   }
 
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
     <MarkdownEditor
       filePath={addMdExtension(path || '')}
-      initialContent={pageExists ? initialContent : `# ${path?.split('/').pop() || 'New Page'}\n\n`}
+      initialContent={initialContent}
       onSave={handleSave}
       onCancel={handleCancel}
     />
