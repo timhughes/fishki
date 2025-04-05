@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+  
+  build-linux:
+    name: Build Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+    
+    - name: Copy Frontend to Static Directory
+      run: |
+        mkdir -p static
+        cp -r frontend/dist/* static/
+    
+    - name: Build Backend
+      run: |
+        go mod download
+        GOOS=linux GOARCH=amd64 go build -o fishki-linux-amd64 ./cmd/fishki-server
+    
+    - name: Create Archive
+      run: |
+        tar -czf fishki-linux-amd64.tar.gz fishki-linux-amd64 static/
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./fishki-linux-amd64.tar.gz
+        asset_name: fishki-linux-amd64.tar.gz
+        asset_content_type: application/gzip
+  
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+    
+    - name: Copy Frontend to Static Directory
+      run: |
+        mkdir -p static
+        cp -r frontend/dist/* static/
+    
+    - name: Build Backend
+      run: |
+        go mod download
+        GOOS=darwin GOARCH=amd64 go build -o fishki-darwin-amd64 ./cmd/fishki-server
+        GOOS=darwin GOARCH=arm64 go build -o fishki-darwin-arm64 ./cmd/fishki-server
+    
+    - name: Create Archives
+      run: |
+        tar -czf fishki-darwin-amd64.tar.gz fishki-darwin-amd64 static/
+        tar -czf fishki-darwin-arm64.tar.gz fishki-darwin-arm64 static/
+    
+    - name: Upload Release Asset (amd64)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./fishki-darwin-amd64.tar.gz
+        asset_name: fishki-darwin-amd64.tar.gz
+        asset_content_type: application/gzip
+    
+    - name: Upload Release Asset (arm64)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./fishki-darwin-arm64.tar.gz
+        asset_name: fishki-darwin-arm64.tar.gz
+        asset_content_type: application/gzip
+  
+  build-windows:
+    name: Build Windows
+    needs: create-release
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+    
+    - name: Copy Frontend to Static Directory
+      run: |
+        mkdir -p static
+        cp -r frontend/dist/* static/
+      shell: bash
+    
+    - name: Build Backend
+      run: |
+        go mod download
+        $env:GOOS = "windows"
+        $env:GOARCH = "amd64"
+        go build -o fishki-windows-amd64.exe ./cmd/fishki-server
+    
+    - name: Create Archive
+      run: |
+        Compress-Archive -Path fishki-windows-amd64.exe, static/* -DestinationPath fishki-windows-amd64.zip
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./fishki-windows-amd64.zip
+        asset_name: fishki-windows-amd64.zip
+        asset_content_type: application/zip
