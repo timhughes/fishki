@@ -15,14 +15,12 @@ jobs:
     steps:
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
+        generate_release_notes: true
   
   build-linux:
     name: Build Linux
@@ -63,14 +61,9 @@ jobs:
         tar -czf fishki-linux-amd64.tar.gz fishki-linux-amd64 static/
     
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./fishki-linux-amd64.tar.gz
-        asset_name: fishki-linux-amd64.tar.gz
-        asset_content_type: application/gzip
+        files: fishki-linux-amd64.tar.gz
   
   build-macos:
     name: Build macOS
@@ -112,25 +105,12 @@ jobs:
         tar -czf fishki-darwin-amd64.tar.gz fishki-darwin-amd64 static/
         tar -czf fishki-darwin-arm64.tar.gz fishki-darwin-arm64 static/
     
-    - name: Upload Release Asset (amd64)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./fishki-darwin-amd64.tar.gz
-        asset_name: fishki-darwin-amd64.tar.gz
-        asset_content_type: application/gzip
-    
-    - name: Upload Release Asset (arm64)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./fishki-darwin-arm64.tar.gz
-        asset_name: fishki-darwin-arm64.tar.gz
-        asset_content_type: application/gzip
+        files: |
+          fishki-darwin-amd64.tar.gz
+          fishki-darwin-arm64.tar.gz
   
   build-windows:
     name: Build Windows
@@ -174,11 +154,6 @@ jobs:
         Compress-Archive -Path fishki-windows-amd64.exe, static/* -DestinationPath fishki-windows-amd64.zip
     
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./fishki-windows-amd64.zip
-        asset_name: fishki-windows-amd64.zip
-        asset_content_type: application/zip
+        files: fishki-windows-amd64.zip
