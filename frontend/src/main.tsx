@@ -1,13 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from './App';
+import { NavigationProvider } from './contexts/NavigationContext';
 import './index.css';
+
+// Create a data router to support useBlocker
+const router = createBrowserRouter([
+  {
+    path: "/*",
+    element: (
+      <NavigationProvider>
+        <App />
+      </NavigationProvider>
+    ),
+  },
+]);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </React.StrictMode>,
 );

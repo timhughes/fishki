@@ -7,6 +7,9 @@ import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { CreatePage } from './components/CreatePage';
+import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
+import { NavigationBlocker } from './components/NavigationBlocker';
+import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
 
@@ -35,6 +38,7 @@ const theme = createTheme({
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
+  const [pageDeleted, setPageDeleted] = React.useState(false);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -45,11 +49,12 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   };
 
   const handleDelete = () => {
+    setPageDeleted(true); // Mark the page as deleted
     onPageDeleted();
   };
 
-  if (!path) {
-    return <CreatePage path={''} onCreateClick={handleCreate} />;
+  if (!path || pageDeleted) {
+    return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
   }
 
   return (
@@ -136,13 +141,31 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  
+  // Use our navigation context
+  const { 
+    blockNavigation, 
+    pendingLocation, 
+    setPendingLocation, 
+    confirmNavigation, 
+    cancelNavigation,
+    setNavigationCallback
+  } = useNavigation();
 
+  // Handle file selection from the tree view
   const handleFileSelect = (path: string) => {
     // Remove .md extension from path before navigating
     const cleanPath = removeMdExtension(path);
     
-    // Always navigate to view mode when selecting a file from the tree
-    navigate(`/page/${cleanPath}`);
+    // Check if navigation should be blocked
+    if (blockNavigation && location.pathname.startsWith('/edit/')) {
+      // Store the pending navigation and show confirmation dialog
+      setPendingLocation(`/page/${cleanPath}`);
+      setNavigationCallback(() => () => navigate(`/page/${cleanPath}`));
+    } else {
+      // Navigate directly if no blocking needed
+      navigate(`/page/${cleanPath}`);
+    }
   };
 
   const handlePageCreated = () => {
@@ -150,6 +173,7 @@ function App() {
   };
 
   const handlePageDeleted = () => {
+    // Force a refresh of the page browser
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -214,6 +238,14 @@ function App() {
             <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
           </Routes>
         </Box>
+
+        {/* Navigation components */}
+        <NavigationBlocker />
+        <UnsavedChangesDialog
+          open={!!pendingLocation}
+          onContinue={confirmNavigation}
+          onCancel={cancelNavigation}
+        />
       </Box>
     </ThemeProvider>
   );

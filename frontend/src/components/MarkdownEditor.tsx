@@ -12,6 +12,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { api } from '../api/client';
+import { useNavigation } from '../contexts/NavigationContext';
 
 interface MarkdownEditorProps {
   filePath: string;
@@ -30,17 +31,43 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
   const [renderedContent, setRenderedContent] = React.useState('');
+  
+  // Track if content has been modified
+  const [hasChanges, setHasChanges] = React.useState(false);
+  
+  // Use our navigation protection hooks
+  const { setBlockNavigation } = useNavigation();
+
+  // Update hasChanges when content changes
+  React.useEffect(() => {
+    const contentChanged = content !== initialContent;
+    setHasChanges(contentChanged);
+    setBlockNavigation(contentChanged);
+  }, [content, initialContent, setBlockNavigation]);
 
   const handleSave = async () => {
     try {
       setSaving(true);
       await api.save(filePath, content);
+      setHasChanges(false);
+      setBlockNavigation(false);
       onSave();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save content');
     } finally {
       setSaving(false); // Always reset saving state
     }
+  };
+
+  const handleCancel = () => {
+    setBlockNavigation(false);
+    onCancel();
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    // The effect will handle updating hasChanges
   };
 
   React.useEffect(() => {
@@ -55,6 +82,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     renderPreview();
   }, [content]);
 
+  // Add protection when component unmounts
+  React.useEffect(() => {
+    return () => {
+      // If we still have changes when unmounting, make sure we're still protected
+      if (hasChanges) {
+        setBlockNavigation(true);
+      }
+    };
+  }, [hasChanges, setBlockNavigation]);
+
   return (
     <Paper
       elevation={0}
@@ -68,29 +105,37 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 1,
+          justifyContent: 'space-between',
           mb: 2,
         }}
       >
-        <Button
-          variant="outlined"
-          color="secondary"
-          onClick={onCancel}
-          disabled={saving}
-          startIcon={<CancelIcon />}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSave}
-          disabled={saving}
-          startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </Button>
+        <Box>
+          {hasChanges && (
+            <Alert severity="info" sx={{ py: 0 }}>
+              You have unsaved changes
+            </Alert>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={handleCancel}
+            disabled={saving}
+            startIcon={<CancelIcon />}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSave}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -112,7 +157,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             multiline
             fullWidth
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleContentChange}
             disabled={saving}
             variant="outlined"
             sx={{
@@ -132,7 +177,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <Paper
             variant="outlined"
             className="markdown-content"
-          data-testid="markdown-preview"
+            data-testid="markdown-preview"
             sx={{
               height: '500px',
               p: 2,

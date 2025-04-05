@@ -30,6 +30,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string>();
+  const [isDeleted, setIsDeleted] = React.useState(false);
 
   React.useEffect(() => {
     const loadContent = async () => {
@@ -37,6 +38,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         setLoading(true);
         setError(undefined);
         setNotFound(false);
+        setIsDeleted(false);
         const fileContent = await api.load(filePath);
         setContent(fileContent);
       } catch (err) {
@@ -66,6 +68,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       setDeleteError(undefined);
       await api.delete(filePath);
       setDeleteDialogOpen(false);
+      setIsDeleted(true); // Mark the page as deleted
       onDelete();
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Failed to delete page');
@@ -95,7 +98,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     );
   }
 
-  if (notFound) {
+  // Show the CreatePage interface if the page was deleted or not found
+  if (isDeleted || notFound) {
     return onNotFound();
   }
 
