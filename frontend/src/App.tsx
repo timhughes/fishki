@@ -8,7 +8,7 @@ import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { CreatePage } from './components/CreatePage';
 import { api } from './api/client';
-import { addMdExtension, removeMdExtension } from './utils/path';
+import { addMdExtension } from './utils/path';
 
 const theme = createTheme({
   palette: {

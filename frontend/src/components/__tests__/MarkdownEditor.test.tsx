@@ -130,8 +130,6 @@ describe('MarkdownEditor', () => {
 
     // Check saving state
     const saveButton = screen.getByText('Save');
-    const cancelButton = screen.getByText('Cancel');
-    const textarea = screen.getByRole('textbox');
 
     // Test error state
     const error = 'Failed to save content';
