@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, AppBar, Toolbar, Typography, IconButton, CircularProgress } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, IconButton, CircularProgress, Alert } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
@@ -37,6 +37,7 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const navigate = useNavigate();
   const [notFound, setNotFound] = React.useState(false);
   const [checking, setChecking] = React.useState(true);
+  const [error, setError] = React.useState<string>();
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -56,11 +57,16 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     const checkPage = async () => {
       try {
         setChecking(true);
+        setError(undefined);
         await api.load(addMdExtension(path || ''));
         setNotFound(false);
       } catch (err) {
-        if (err instanceof Error && err.message.includes('404')) {
-          setNotFound(true);
+        if (err instanceof Error) {
+          if (err.message.includes('404')) {
+            setNotFound(true);
+          } else {
+            setError(err.message);
+          }
         }
       } finally {
         setChecking(false);
@@ -71,6 +77,8 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
       checkPage();
     } else {
       setChecking(false);
+      setNotFound(false);
+      setError(undefined);
     }
   }, [path]);
 
@@ -88,6 +96,14 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
 
   if (notFound) {
     return <CreatePage path={path} onCreateClick={handleCreate} />;
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
   }
 
   return (
