@@ -141,11 +141,8 @@ function App() {
     // Remove .md extension from path before navigating
     const cleanPath = removeMdExtension(path);
     
-    if (location.pathname.startsWith('/edit/')) {
-      navigate(`/edit/${cleanPath}`);
-    } else {
-      navigate(`/page/${cleanPath}`);
-    }
+    // Always navigate to view mode when selecting a file from the tree
+    navigate(`/page/${cleanPath}`);
   };
 
   const handlePageCreated = () => {
