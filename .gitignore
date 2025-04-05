@@ -28,3 +28,4 @@ web/build/
 fishki-server
 web/coverage
 bin
+frontend/.vite

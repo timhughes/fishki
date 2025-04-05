@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -103,7 +102,6 @@ func getFileTree(root string) ([]FileInfo, error) {
 
 		// Store all valid paths
 		if info.IsDir() || filepath.Ext(info.Name()) == ".md" {
-			fmt.Printf("Found path: %s (isDir: %v)\n", relPath, info.IsDir())
 			allPaths = append(allPaths, relPath)
 			pathMap[relPath] = &FileInfo{
 				Name: info.Name(),
@@ -133,8 +131,6 @@ func getFileTree(root string) ([]FileInfo, error) {
 		return allPaths[i] < allPaths[j]
 	})
 
-	fmt.Printf("\nAll collected paths: %v\n", allPaths)
-
 	// Sort paths by depth to process parents before children
 	sort.Slice(allPaths, func(i, j int) bool {
 		depthI := strings.Count(allPaths[i], string(filepath.Separator))
@@ -145,26 +141,19 @@ func getFileTree(root string) ([]FileInfo, error) {
 		return allPaths[i] < allPaths[j]
 	})
 
-	fmt.Printf("\nSorted paths: %v\n", allPaths)
-
 	// First pass: Build tree structure using pointers
 	var rootFiles []*FileInfo
 	for _, path := range allPaths {
 		dir := filepath.Dir(path)
 
 		if dir == "." {
-			fmt.Printf("Adding to root: %s\n", path)
 			rootFiles = append(rootFiles, pathMap[path])
 		} else {
-			fmt.Printf("Looking for parent directory: %s for path: %s\n", dir, path)
 			if parent, ok := pathMap[dir]; ok {
-				fmt.Printf("Found parent, adding to children: %s -> %s\n", dir, path)
 				if parent.Children == nil {
 					parent.Children = make([]FileInfo, 0)
 				}
 				parent.Children = append(parent.Children, *pathMap[path])
-			} else {
-				fmt.Printf("Warning: Could not find parent directory: %s for path: %s\n", dir, path)
 			}
 		}
 	}
@@ -178,21 +167,7 @@ func getFileTree(root string) ([]FileInfo, error) {
 	// Sort all levels of the tree
 	sortFileTree(files)
 
-	fmt.Printf("\nFinal tree structure:\n")
-	printTree(files, 0)
-
 	return files, nil
-}
-
-func printTree(files []FileInfo, level int) {
-	indent := strings.Repeat("  ", level)
-	for _, file := range files {
-		childCount := len(file.Children)
-		fmt.Printf("%s- %s (%s, children: %d)\n", indent, file.Path, file.Type, childCount)
-		if file.Type == "folder" {
-			printTree(file.Children, level+1)
-		}
-	}
 }
 
 func sortFileTree(files []FileInfo) {
