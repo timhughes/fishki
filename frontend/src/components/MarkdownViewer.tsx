@@ -116,7 +116,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       <Paper
         elevation={0}
         sx={{
-          maxWidth: '800px',
+          maxWidth: '1800px',
           margin: '0 auto',
           p: 3,
           bgcolor: 'background.paper',
