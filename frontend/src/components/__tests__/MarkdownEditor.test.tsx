@@ -2,6 +2,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MarkdownEditor } from '../MarkdownEditor';
 import { api } from '../../api/client';
+import { NavigationProvider } from '../../contexts/NavigationContext';
 
 jest.mock('../../api/client', () => ({
   api: {
@@ -22,12 +23,14 @@ describe('MarkdownEditor', () => {
 
   it('renders with initial content and preview', async () => {
     render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={() => {}}
-      />
+      <NavigationProvider>
+        <MarkdownEditor
+          filePath={mockFilePath}
+          initialContent={mockInitialContent}
+          onSave={() => {}}
+          onCancel={() => {}}
+        />
+      </NavigationProvider>
     );
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -48,12 +51,14 @@ describe('MarkdownEditor', () => {
     (api.save as jest.Mock).mockResolvedValue(undefined);
 
     render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
+      <NavigationProvider>
+        <MarkdownEditor
+          filePath={mockFilePath}
+          initialContent={mockInitialContent}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      </NavigationProvider>
     );
 
     await act(async () => {
@@ -87,12 +92,14 @@ describe('MarkdownEditor', () => {
     );
 
     render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={() => {}}
-      />
+      <NavigationProvider>
+        <MarkdownEditor
+          filePath={mockFilePath}
+          initialContent={mockInitialContent}
+          onSave={() => {}}
+          onCancel={() => {}}
+        />
+      </NavigationProvider>
     );
 
     // Wait for initial render
@@ -116,12 +123,14 @@ describe('MarkdownEditor', () => {
 
   it('handles saving states and errors', async () => {
     render(
-      <MarkdownEditor
-        filePath={mockFilePath}
-        initialContent={mockInitialContent}
-        onSave={() => {}}
-        onCancel={() => {}}
-      />
+      <NavigationProvider>
+        <MarkdownEditor
+          filePath={mockFilePath}
+          initialContent={mockInitialContent}
+          onSave={() => {}}
+          onCancel={() => {}}
+        />
+      </NavigationProvider>
     );
 
     await act(async () => {

@@ -40,8 +40,10 @@ require('@testing-library/dom').configure({
 const originalError = console.error;
 console.error = (...args) => {
   if (
-    args[0]?.includes('inside a test was not wrapped in act') ||
-    args[0]?.includes('not configured to support act')
+    typeof args[0] === 'string' && (
+      args[0].includes('inside a test was not wrapped in act') ||
+      args[0].includes('not configured to support act')
+    )
   ) {
     return;
   }

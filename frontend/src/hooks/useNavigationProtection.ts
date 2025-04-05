@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useNavigation } from '../contexts/NavigationContext';
 
 export function useNavigationProtection(shouldBlock: boolean) {
-  const { setBlockNavigation, setPendingLocation, setNavigationCallback } = useNavigation();
+  const { setBlockNavigation, setPendingLocation, setNavigationCallback, setHasUnsavedChanges } = useNavigation();
   const navigate = useNavigate();
 
   // Update block status when shouldBlock changes
   useEffect(() => {
     setBlockNavigation(shouldBlock);
+    setHasUnsavedChanges(shouldBlock);
     
     // Update document title to indicate unsaved changes
     if (shouldBlock) {
@@ -20,7 +21,7 @@ export function useNavigationProtection(shouldBlock: boolean) {
         document.title = 'Fishki Wiki';
       }
     };
-  }, [shouldBlock, setBlockNavigation]);
+  }, [shouldBlock, setBlockNavigation, setHasUnsavedChanges]);
 
   // Handle browser back/forward buttons and tab close
   useEffect(() => {

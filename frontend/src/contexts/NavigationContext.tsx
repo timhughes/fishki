@@ -3,8 +3,10 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 interface NavigationContextType {
   blockNavigation: boolean;
   pendingLocation: string | null;
+  hasUnsavedChanges: boolean;
   setPendingLocation: (location: string | null) => void;
   setBlockNavigation: (block: boolean) => void;
+  setHasUnsavedChanges: (hasChanges: boolean) => void;
   confirmNavigation: () => void;
   cancelNavigation: () => void;
   setNavigationCallback: (callback: (() => void) | null) => void;
@@ -14,6 +16,7 @@ const NavigationContext = createContext<NavigationContextType | null>(null);
 
 export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [blockNavigation, setBlockNavigation] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingLocation, setPendingLocation] = useState<string | null>(null);
   const [callback, setCallback] = useState<(() => void) | null>(null);
 
@@ -23,6 +26,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setCallback(null);
     }
     setPendingLocation(null);
+    setHasUnsavedChanges(false);
   }, [callback]);
 
   const cancelNavigation = useCallback(() => {
@@ -33,8 +37,10 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const value = {
     blockNavigation,
     pendingLocation,
+    hasUnsavedChanges,
     setPendingLocation,
     setBlockNavigation,
+    setHasUnsavedChanges,
     confirmNavigation,
     cancelNavigation,
     setNavigationCallback: setCallback
