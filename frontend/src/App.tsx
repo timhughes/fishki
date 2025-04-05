@@ -8,7 +8,7 @@ import { MarkdownViewer } from './components/MarkdownViewer';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { CreatePage } from './components/CreatePage';
 import { api } from './api/client';
-import { addMdExtension } from './utils/path';
+import { addMdExtension, removeMdExtension } from './utils/path';
 
 const theme = createTheme({
   palette: {
@@ -138,10 +138,13 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
   const handleFileSelect = (path: string) => {
+    // Remove .md extension from path before navigating
+    const cleanPath = removeMdExtension(path);
+    
     if (location.pathname.startsWith('/edit/')) {
-      navigate(`/edit/${path}`);
+      navigate(`/edit/${cleanPath}`);
     } else {
-      navigate(`/page/${path}`);
+      navigate(`/page/${cleanPath}`);
     }
   };
 
