@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, IconButton, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { PageBrowser } from './components/PageBrowser';
 import { MarkdownViewer } from './components/MarkdownViewer';
@@ -42,23 +42,10 @@ const theme = createTheme({
 });
 
 // Route components
-const ViewPage = () => {
+const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
-  const [pageExists, setPageExists] = React.useState<boolean | null>(null);
   
-  React.useEffect(() => {
-    const checkPage = async () => {
-      try {
-        await api.load(addMdExtension(path || ''));
-        setPageExists(true);
-      } catch (err) {
-        setPageExists(false);
-      }
-    };
-    checkPage();
-  }, [path]);
-
   const handleEdit = () => {
     navigate(`/edit/${path}`);
   };
@@ -67,18 +54,21 @@ const ViewPage = () => {
     navigate(`/edit/${path}`);
   };
 
-  if (pageExists === null) {
-    return null;
-  }
+  const handleDelete = () => {
+    onPageDeleted();
+    navigate('/');
+  };
 
-  if (pageExists === false) {
-    return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
+  if (!path) {
+    return <CreatePage path={''} onCreateClick={handleCreate} />;
   }
 
   return (
     <MarkdownViewer
-      filePath={addMdExtension(path || '')}
+      filePath={addMdExtension(path)}
       onEdit={handleEdit}
+      onDelete={handleDelete}
+      onNotFound={() => <CreatePage path={path} onCreateClick={handleCreate} />}
     />
   );
 };
@@ -106,9 +96,9 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
     loadContent();
   }, [path]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!pageExists) {
-      onPageCreated(); // Trigger refresh only for new pages
+      onPageCreated();
     }
     navigate(`/page/${path}`);
   };
@@ -118,7 +108,11 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
   };
 
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -146,6 +140,10 @@ function App() {
   };
 
   const handlePageCreated = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handlePageDeleted = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -205,9 +203,9 @@ function App() {
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}
           <Routes>
-            <Route path="/page/*" element={<ViewPage />} />
+            <Route path="/page/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
             <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
-            <Route path="/*" element={<ViewPage />} />
+            <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
           </Routes>
         </Box>
       </Box>
