@@ -29,6 +29,9 @@ func (h *Handler) SetGitClient(client git.GitClient) {
 
 func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	h := NewHandler(cfg)
+	
+	// Initialize Git client
+	h.SetGitClient(git.New())
 
 	// Wrap each handler with the access logger middleware
 	mux.Handle("/api/files", AccessLoggerMiddleware(http.HandlerFunc(h.handleFiles)))
@@ -198,13 +201,19 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 
 		// Git operations if client is available
 		if h.git != nil {
-			if err := h.git.Commit(filePath, "Updated "+request.Filename); err != nil {
-				http.Error(w, "Failed to commit changes", http.StatusInternalServerError)
+			// Commit changes to the repository
+			if err := h.git.Commit(h.config.WikiPath, "Updated "+request.Filename); err != nil {
+				http.Error(w, "Failed to commit changes: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
-			if err := h.git.Push(h.config.WikiPath); err != nil {
-				http.Error(w, "Failed to push changes", http.StatusInternalServerError)
-				return
+			
+			// Try to push changes, but don't fail if push fails (might not have remote)
+			if h.git.HasRemote(h.config.WikiPath) {
+				if err := h.git.Push(h.config.WikiPath); err != nil {
+					// Log the error but don't fail the request
+					// The changes are still committed locally
+					w.Header().Set("X-Git-Push-Error", err.Error())
+				}
 			}
 		}
 
@@ -249,13 +258,19 @@ func (h *Handler) deleteHandler() http.HandlerFunc {
 
 		// Git operations if client is available
 		if h.git != nil {
-			if err := h.git.Commit(filePath, "Deleted "+request.Filename); err != nil {
-				http.Error(w, "Failed to commit deletion", http.StatusInternalServerError)
+			// Commit the deletion to the repository
+			if err := h.git.Commit(h.config.WikiPath, "Deleted "+request.Filename); err != nil {
+				http.Error(w, "Failed to commit deletion: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
-			if err := h.git.Push(h.config.WikiPath); err != nil {
-				http.Error(w, "Failed to push changes", http.StatusInternalServerError)
-				return
+			
+			// Try to push changes, but don't fail if push fails (might not have remote)
+			if h.git.HasRemote(h.config.WikiPath) {
+				if err := h.git.Push(h.config.WikiPath); err != nil {
+					// Log the error but don't fail the request
+					// The changes are still committed locally
+					w.Header().Set("X-Git-Push-Error", err.Error())
+				}
 			}
 		}
 
