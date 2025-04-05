@@ -1,6 +1,12 @@
 import React from 'react';
 import { Box, Paper, Button, CircularProgress, Alert, Typography } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 import { api } from '../api/client';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -32,8 +38,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         setError(undefined);
         setNotFound(false);
         const fileContent = await api.load(filePath);
-        const rendered = await api.render(fileContent);
-        setContent(rendered);
+        setContent(fileContent);
       } catch (err) {
         if (err instanceof Error) {
           if (err.message === '404') {
@@ -147,7 +152,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         </Box>
         <Box
           component="article"
-          aria-label="test"
+          aria-label="markdown-content"
           className="markdown-content"
           sx={{
             '& img': {
@@ -155,18 +160,27 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               height: 'auto',
             },
             '& pre': {
-              bgcolor: 'grey.100',
               borderRadius: 1,
               overflow: 'auto',
+              padding: '0.5rem',
+              margin: '1rem 0',
+              backgroundColor: '#f6f8fa',
             },
             '& code': {
-              bgcolor: 'grey.100',
+              fontFamily: 'monospace',
+              fontSize: '0.9rem',
+            },
+            '& pre > code': {
+              padding: 0,
+              background: 'none',
+            },
+            '& :not(pre) > code': {
+              bgcolor: '#f6f8fa',
               px: 0.5,
               borderRadius: 0.5,
-              fontFamily: 'monospace',
             },
             '& blockquote': {
-              borderLeft: 4,
+              borderLeft: '4px solid',
               borderColor: 'grey.300',
               pl: 2,
               ml: 0,
@@ -176,7 +190,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               borderCollapse: 'collapse',
               width: '100%',
               '& th, & td': {
-                border: 1,
+                border: '1px solid',
                 borderColor: 'grey.300',
                 p: 1,
               },
@@ -184,9 +198,33 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 bgcolor: 'grey.50',
               },
             },
+            '& h1, & h2': {
+              borderBottom: '1px solid',
+              borderColor: 'grey.200',
+              pb: 1,
+            },
+            '& a': {
+              color: 'primary.main',
+              textDecoration: 'none',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            },
+            '& hr': {
+              border: 'none',
+              height: '1px',
+              bgcolor: 'grey.200',
+              my: 2,
+            },
           }}
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, rehypeSanitize, [rehypeHighlight, { detect: true }]]}
+          >
+            {content}
+          </ReactMarkdown>
+        </Box>
       </Paper>
 
       <DeleteConfirmDialog

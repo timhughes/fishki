@@ -311,6 +311,8 @@ func (h *Handler) renderHandler() http.HandlerFunc {
 			return
 		}
 
+		// Note: This endpoint is kept for backward compatibility
+		// but rendering is now done client-side
 		rendered := markdown.Render([]byte(request.Markdown))
 
 		w.Header().Set("Content-Type", "text/html")
