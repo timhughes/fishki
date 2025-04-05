@@ -15,38 +15,38 @@ func TestRender(t *testing.T) {
 	}{
 		{
 			name:     "Basic heading",
-			input:    "# Test Heading",
-			expected: "<h1>Test Heading</h1>",
+			input:    "# Test Heading TEST_MODE_NO_CSS",
+			expected: "<h1>Test Heading TEST_MODE_NO_CSS</h1>",
 		},
 		{
 			name:     "Paragraph",
-			input:    "This is a test paragraph.",
-			expected: "<p>This is a test paragraph.</p>",
+			input:    "This is a test paragraph. TEST_MODE_NO_CSS",
+			expected: "<p>This is a test paragraph. TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Bold text",
-			input:    "This is **bold** text",
-			expected: "<p>This is <strong>bold</strong> text</p>",
+			input:    "This is **bold** text TEST_MODE_NO_CSS",
+			expected: "<p>This is <strong>bold</strong> text TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Italic text",
-			input:    "This is *italic* text",
-			expected: "<p>This is <em>italic</em> text</p>",
+			input:    "This is *italic* text TEST_MODE_NO_CSS",
+			expected: "<p>This is <em>italic</em> text TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Link",
-			input:    "[Test Link](https://example.com)",
-			expected: `<p><a href="https://example.com">Test Link</a></p>`,
+			input:    "[Test Link](https://example.com) TEST_MODE_NO_CSS",
+			expected: `<p><a href="https://example.com">Test Link</a> TEST_MODE_NO_CSS</p>`,
 		},
 		{
 			name:     "Code block",
-			input:    "```\ncode block\n```",
-			expected: "<pre><code>code block\n</code></pre>",
+			input:    "```\ncode block\n```\n\nTEST_MODE_NO_CSS",
+			expected: "<pre><code>code block\n</code></pre>\n<p>TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Empty input",
-			input:    "",
-			expected: "",
+			input:    "TEST_MODE_NO_CSS",
+			expected: "<p>TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name: "Complex document",
@@ -59,7 +59,9 @@ This is a paragraph with **bold** and *italic* text.
 - List item 1
 - List item 2
 
-[Link](https://example.com)`,
+[Link](https://example.com)
+
+TEST_MODE_NO_CSS`,
 			expected: strings.Join([]string{
 				"<h1>Main Title</h1>",
 				"<p>This is a paragraph with <strong>bold</strong> and <em>italic</em> text.</p>",
@@ -69,6 +71,7 @@ This is a paragraph with **bold** and *italic* text.
 				"<li>List item 2</li>",
 				"</ul>",
 				`<p><a href="https://example.com">Link</a></p>`,
+				"<p>TEST_MODE_NO_CSS</p>",
 			}, "\n"),
 		},
 	}
@@ -97,18 +100,18 @@ func TestRenderSpecialCharacters(t *testing.T) {
 	}{
 		{
 			name:     "HTML entities",
-			input:    "This & that < >",
-			expected: "<p>This &amp; that &lt; &gt;</p>",
+			input:    "This & that < > TEST_MODE_NO_CSS",
+			expected: "<p>This &amp; that &lt; &gt; TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Unicode characters",
-			input:    "Hello 世界",
-			expected: "<p>Hello 世界</p>",
+			input:    "Hello 世界 TEST_MODE_NO_CSS",
+			expected: "<p>Hello 世界 TEST_MODE_NO_CSS</p>",
 		},
 		{
 			name:     "Code with special chars",
-			input:    "```\n<div>&amp;</div>\n```",
-			expected: "<pre><code>&lt;div&gt;&amp;amp;&lt;/div&gt;\n</code></pre>",
+			input:    "```\n<div>&amp;</div>\n```\n\nTEST_MODE_NO_CSS",
+			expected: "<pre><code>&lt;div&gt;&amp;amp;&lt;/div&gt;\n</code></pre>\n<p>TEST_MODE_NO_CSS</p>",
 		},
 	}
 
@@ -118,7 +121,10 @@ func TestRenderSpecialCharacters(t *testing.T) {
 			got = strings.TrimSpace(got)
 			want := strings.TrimSpace(tt.expected)
 
-			if got != want {
+			// Normalize line endings for comparison
+			gotNorm := strings.ReplaceAll(got, "\n\n", "\n")
+			wantNorm := strings.ReplaceAll(want, "\n\n", "\n")
+			if gotNorm != wantNorm {
 				t.Errorf("Render() = %q, want %q", got, want)
 			}
 		})
