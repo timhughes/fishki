@@ -62,8 +62,11 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
               navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
             }
           } catch (err) {
-            // If index doesn't exist, show create page interface for the index
-            navigate(`/edit/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+            // If index doesn't exist, stay on the page view but show create page interface
+            // We'll handle this in the render logic below
+            if (!cleanPath?.endsWith('/index') && cleanPath !== 'index') {
+              navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+            }
           }
         }
       } catch (err) {
@@ -97,7 +100,12 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     );
   }
 
-  if (!path || pageDeleted) {
+  // Check if this is a folder index path that might need to be created
+  const isIndexPath = path?.endsWith('/index') || path === 'index';
+  const isFolder = location.pathname.endsWith('/') && !location.pathname.endsWith('/index/');
+  
+  if (!path || pageDeleted || (isIndexPath && isFolder)) {
+    // For deleted pages, non-existent paths, or folder index pages that don't exist
     return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
   }
 
