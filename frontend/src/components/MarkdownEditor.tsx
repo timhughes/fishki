@@ -13,6 +13,8 @@ import {
 } from '@mui/icons-material';
 import { api } from '../api/client';
 import { useNavigation } from '../contexts/NavigationContext';
+import { MarkdownToolbar } from './MarkdownToolbar';
+import { useMarkdownEditor } from '../hooks/useMarkdownEditor';
 
 interface MarkdownEditorProps {
   filePath: string;
@@ -37,6 +39,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   
   // Use our navigation protection hooks
   const { setBlockNavigation } = useNavigation();
+
+  // Use our markdown editor hook
+  const {
+    textFieldRef,
+    formatBold,
+    formatItalic,
+    formatHeading,
+    formatCode,
+    formatCodeBlock,
+    formatLink,
+    formatImage,
+    formatBulletList,
+    formatNumberedList,
+    formatQuote,
+    formatHorizontalRule,
+    formatTaskList,
+    formatTable,
+    handleKeyDown
+  } = useMarkdownEditor({ content, setContent });
 
   // Update hasChanges when content changes
   React.useEffect(() => {
@@ -146,6 +167,23 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </Box>
       )}
 
+      {/* Formatting Toolbar */}
+      <MarkdownToolbar 
+        onBold={formatBold}
+        onItalic={formatItalic}
+        onHeading={formatHeading}
+        onCode={formatCode}
+        onCodeBlock={formatCodeBlock}
+        onLink={formatLink}
+        onImage={formatImage}
+        onBulletList={formatBulletList}
+        onNumberedList={formatNumberedList}
+        onQuote={formatQuote}
+        onHorizontalRule={formatHorizontalRule}
+        onTaskList={formatTaskList}
+        onTable={formatTable}
+      />
+
       <Box
         sx={{
           display: 'flex',
@@ -158,8 +196,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             fullWidth
             value={content}
             onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
             disabled={saving}
             variant="outlined"
+            inputRef={textFieldRef}
             sx={{
               '& .MuiInputBase-root': {
                 fontFamily: 'monospace',
