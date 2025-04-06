@@ -38,6 +38,7 @@ const theme = createTheme({
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pageDeleted, setPageDeleted] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
@@ -45,23 +46,35 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   React.useEffect(() => {
     const checkForIndex = async () => {
       setLoading(true);
+      
+      // Handle paths ending with slash or explicit folder navigation
+      const isFolder = path?.endsWith('/') || location.pathname.endsWith('/');
+      const cleanPath = path?.endsWith('/') ? path.slice(0, -1) : path;
+      
       try {
-        // Try to load the index file
-        const indexPath = path ? `${path}/index.md` : 'index.md';
-        await api.load(indexPath);
-        // If successful and we're not already viewing the index, navigate to it
-        if (!path?.endsWith('/index') && path !== 'index') {
-          navigate(`/page/${path ? `${path}/index` : 'index'}`);
+        if (isFolder || !path) {
+          // For folder paths, try to load the index file
+          const indexPath = cleanPath ? `${cleanPath}/index.md` : 'index.md';
+          try {
+            await api.load(indexPath);
+            // If successful and we're not already viewing the index, navigate to it
+            if (!cleanPath?.endsWith('/index') && cleanPath !== 'index') {
+              navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+            }
+          } catch (err) {
+            // If index doesn't exist, show create page interface for the index
+            navigate(`/edit/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+          }
         }
       } catch (err) {
-        // If index doesn't exist, continue with normal page loading
+        // Handle any other errors
       } finally {
         setLoading(false);
       }
     };
     
     checkForIndex();
-  }, [path, navigate]);
+  }, [path, navigate, location.pathname]);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);

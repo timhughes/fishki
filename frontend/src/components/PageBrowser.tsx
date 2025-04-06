@@ -72,18 +72,9 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
                   if (item.type === 'file') {
                     onFileSelect(item.path);
                   } else if (item.type === 'folder') {
-                    // When clicking on a folder, navigate to its index page if it exists
-                    const indexPath = item.children?.find(child => 
-                      child.type === 'file' && isIndexFile(child.name)
-                    )?.path;
-                    
-                    if (indexPath) {
-                      onFileSelect(indexPath);
-                    } else {
-                      // If no index page exists, just expand/collapse the folder
-                      // This could be enhanced to create an index page
-                      console.log('No index page found for folder:', item.path);
-                    }
+                    // When clicking on a folder, navigate to its path with trailing slash
+                    // This will trigger the folder handling logic in ViewPage
+                    navigate(`/page/${item.path}/`);
                   }
                 }}
                 dense
