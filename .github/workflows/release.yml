@@ -51,7 +51,7 @@ jobs:
         GOOS=windows GOARCH=amd64 go build -v -o dist/fishki-${{ steps.get_version.outputs.VERSION }}-windows-amd64.exe ./cmd/fishki-server
         
     - name: Create release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           dist/fishki-${{ steps.get_version.outputs.VERSION }}-linux-amd64
