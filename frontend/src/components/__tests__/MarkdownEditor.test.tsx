@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MarkdownEditor } from '../MarkdownEditor';
 import { api } from '../../api/client';
 import { NavigationProvider } from '../../contexts/NavigationContext';
@@ -58,16 +58,18 @@ describe('MarkdownEditor', () => {
     jest.clearAllMocks();
   });
   
-  test('renders editor with initial content', () => {
-    render(
-      <MarkdownEditor 
-        filePath="test.md"
-        initialContent="# Test Content"
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />,
-      { wrapper: TestWrapper }
-    );
+  test('renders editor with initial content', async () => {
+    await act(async () => {
+      render(
+        <MarkdownEditor 
+          filePath="test.md"
+          initialContent="# Test Content"
+          onSave={mockOnSave}
+          onCancel={mockOnCancel}
+        />,
+        { wrapper: TestWrapper }
+      );
+    });
     
     // Check if the editor contains the initial content
     const textarea = screen.getByRole('textbox');
@@ -75,23 +77,28 @@ describe('MarkdownEditor', () => {
   });
   
   test('saves content when save button is clicked', async () => {
-    render(
-      <MarkdownEditor 
-        filePath="test.md"
-        initialContent="# Test Content"
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />,
-      { wrapper: TestWrapper }
-    );
+    await act(async () => {
+      render(
+        <MarkdownEditor 
+          filePath="test.md"
+          initialContent="# Test Content"
+          onSave={mockOnSave}
+          onCancel={mockOnCancel}
+        />,
+        { wrapper: TestWrapper }
+      );
+    });
     
     // Edit the content
     const textarea = screen.getByRole('textbox');
-    fireEvent.change(textarea, { target: { value: '# Modified Content' } });
+    await act(async () => {
+      fireEvent.change(textarea, { target: { value: '# Modified Content' } });
+    });
     
     // Click save button
-    const saveButton = screen.getByText('Save');
-    fireEvent.click(saveButton);
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
     
     // Check if API was called with correct parameters
     await waitFor(() => {
@@ -100,20 +107,23 @@ describe('MarkdownEditor', () => {
     });
   });
   
-  test('calls onCancel when cancel button is clicked', () => {
-    render(
-      <MarkdownEditor 
-        filePath="test.md"
-        initialContent="# Test Content"
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />,
-      { wrapper: TestWrapper }
-    );
+  test('calls onCancel when cancel button is clicked', async () => {
+    await act(async () => {
+      render(
+        <MarkdownEditor 
+          filePath="test.md"
+          initialContent="# Test Content"
+          onSave={mockOnSave}
+          onCancel={mockOnCancel}
+        />,
+        { wrapper: TestWrapper }
+      );
+    });
     
     // Click cancel button
-    const cancelButton = screen.getByText('Cancel');
-    fireEvent.click(cancelButton);
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
     
     // Check if onCancel was called
     expect(mockOnCancel).toHaveBeenCalled();
