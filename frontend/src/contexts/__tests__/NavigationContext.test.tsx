@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { render, act, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { NavigationProvider, useNavigation } from '../NavigationContext';
 
 // Test component that uses the navigation context
