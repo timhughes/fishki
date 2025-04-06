@@ -4,59 +4,41 @@ A modern, Git-backed wiki system that uses Markdown for content creation and ver
 
 ## Features
 
-- 📝 Markdown-based content editing
-- 🌳 Git-backed version control
-- 📁 Hierarchical file organization
-- 🔍 Real-time preview
-- 📱 Responsive design
-- 🎨 Syntax highlighting for code blocks
-- 🔄 Automatic save and version control
-- 📂 File browser with folder support
+- 📝 **Markdown-based content editing** with real-time preview
+- 🌳 **Git-backed version control** for tracking document history
+- 📁 **Hierarchical file organization** with folder support
+- 🔍 **Client-side Markdown rendering** with syntax highlighting
+- 📱 **Responsive design** for desktop and mobile use
+- 🛡️ **Unsaved changes protection** to prevent accidental data loss
+- 🔄 **Automatic Git integration** with commit, push, and pull support
+- 🚀 **Fast and lightweight** with minimal dependencies
 
 ## Technology Stack
 
 - **Frontend**:
-  - React 18
-  - TypeScript
-  - Material-UI (MUI)
-  - React Router
-  - React Markdown
+  - React 18 with TypeScript
+  - Material-UI (MUI) for consistent UI components
+  - React Router v7 for client-side routing
+  - React Markdown with rehype plugins for rendering
+  - Context API for state management
+  - Comprehensive test coverage with Jest
 
 - **Backend**:
-  - Go 1.21+
-  - Git integration
-  - Built-in HTTP server
+  - Go 1.21+ for high performance
+  - Native Git integration via command-line operations
+  - RESTful API for frontend communication
+  - Embedded static file serving
 
-## Project Structure
+## Installation
 
-```
-fishki/
-├── cmd/                 # Command-line entry points
-├── configs/             # Configuration files
-├── internal/            # Internal packages
-│   ├── config/          # Configuration handling
-│   ├── git/             # Git operations
-│   ├── handlers/        # HTTP handlers
-│   ├── markdown/        # Markdown processing
-│   └── test_utils/      # Testing utilities
-├── scripts/             # Build and maintenance scripts
-├── web/                 # Frontend application
-│   ├── public/          # Static assets
-│   └── src/             # React source code
-│       ├── components/  # React components
-│       ├── hooks/       # Custom React hooks
-│       └── types/       # TypeScript type definitions
-└── README.md            # Project documentation
-```
-
-## Prerequisites
+### Prerequisites
 
 - Go 1.21 or later
 - Node.js 18 or later
 - npm
 - Git
 
-## Installation
+### Setup
 
 1. Clone the repository:
    ```bash
@@ -66,7 +48,7 @@ fishki/
 
 2. Install frontend dependencies:
    ```bash
-   cd web
+   cd frontend
    npm install
    ```
 
@@ -81,16 +63,56 @@ fishki/
    go build ./cmd/fishki-server
    ```
 
-## Development Setup
+5. Run the server:
+   ```bash
+   ./fishki-server
+   ```
+
+6. Access the application at http://localhost:8080
+
+## Usage
+
+### Configuration
+
+The application can be configured using environment variables or command-line flags:
+
+- `PORT`: Server port number (default: 8080)
+- `--bind`: Bind address (default: localhost)
+- `--port`: Port to listen on (default: 8080)
+
+### Git Configuration
+
+Fishki uses your local Git configuration for commit author information:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
+
+### Creating and Editing Pages
+
+1. Navigate to the application in your browser
+2. Use the file browser to navigate to the desired location
+3. Click "Create Page" to create a new page
+4. Use the Markdown editor to write content
+5. Click "Save" to commit changes to Git
+
+### File Organization
+
+- Files are organized in a hierarchical structure
+- Folders can be created by including slashes in the path
+- Special index.md files can be used as folder landing pages
+
+## Development
 
 ### Frontend Development
 
 ```bash
-cd web
+cd frontend
 npm start
 ```
 
-This will start the development server on http://localhost:3000 with:
+This starts the development server on http://localhost:3000 with:
 - Hot reload
 - Development error overlay
 - Source maps
@@ -102,104 +124,21 @@ This will start the development server on http://localhost:3000 with:
 go run ./cmd/fishki-server
 ```
 
-The server will start on port 8080 by default. Configure using environment variables:
+The server will start on port 8080 by default.
+
+### Testing
+
+#### Backend Tests
+
 ```bash
-PORT=3001 go run ./cmd/fishki-server
-```
-
-## Testing
-
-### Backend Tests
-
-Run all Go tests:
-```bash
-# Setup test environment first
-source scripts/setup_test_env.sh
-
-# Run all tests
 go test ./...
-
-# Run tests and stop on first failure (useful for debugging)
-go test -failfast ./...
-
-# Run specific test by name (useful for debugging individual tests)
-go test ./... -run TestSpecificFunction
-
-# Run tests matching a pattern
-go test ./... -run 'Test.*Save.*'
 ```
 
-Run specific package tests:
+#### Frontend Tests
+
 ```bash
-# Run tests for specific packages
-go test ./internal/git
-go test ./internal/markdown
-go test ./internal/handlers
-
-# Run with fail-fast option
-go test -failfast ./internal/git
-
-# Run specific test in a package with fail-fast
-go test -failfast ./internal/git -run TestGitSave
-```
-
-Generate coverage report:
-```bash
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-```
-
-### Frontend Tests
-
-Run React component tests:
-```bash
-cd web
-
-# Run all tests
+cd frontend
 npm test
-
-# Run tests and stop on first failure
-npm run test:bail
-
-# Run tests with detailed output (useful for debugging)
-npm run test:debug
-
-# Run specific test file
-npm run test:file WikiPage.test.tsx
-
-# Run tests matching a pattern
-npm run test:pattern "should handle save"
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-Test Script Reference:
-- `test`: Run all tests once
-- `test:bail`: Run tests and stop on first failure
-- `test:debug`: Run tests with verbose output for debugging
-- `test:file`: Run a specific test file with fail-fast enabled
-- `test:pattern`: Run tests matching a specific pattern
-- `test:watch`: Run tests in watch mode with coverage
-- `test:coverage`: Generate a coverage report
-
-## Configuration
-
-### Environment Variables
-
-- `PORT`: Server port number (default: 8080)
-- Additional configuration options in `internal/config/config.go`
-
-### Git Configuration
-
-The application uses the local Git configuration for commit author information. Ensure Git is properly configured:
-
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
 ```
 
 ## Architecture
@@ -207,45 +146,50 @@ git config --global user.email "your.email@example.com"
 ### Frontend Architecture
 
 The React frontend follows a component-based architecture with:
-- Centralized API service layer
+- Centralized API service layer for backend communication
 - Custom React hooks for data fetching and operations
-- TypeScript for type safety
-- Material-UI for consistent design
-- File-based routing with React Router
+- Context API for global state management (navigation, unsaved changes)
+- TypeScript for type safety throughout the codebase
+- Material-UI for consistent design language
+- Client-side Markdown rendering with syntax highlighting
 
 ### Backend Architecture
 
 The Go backend is structured with:
-- Clean architecture principles
-- Middleware-based HTTP handling
-- Git integration for version control
-- Markdown parsing and rendering
-- Concurrent request handling
+- Clean architecture principles for maintainability
+- Middleware-based HTTP handling for cross-cutting concerns
+- Git integration for version control operations
+- RESTful API endpoints for frontend communication
+- Embedded static file serving for the React application
 
-## Contributing
+### API Endpoints
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+- `GET /api/files` - List all files and directories
+- `GET /api/load?filename=path/to/file.md` - Load file content
+- `POST /api/save` - Save file content
+- `DELETE /api/delete` - Delete a file
+- `POST /api/render` - Render Markdown to HTML (legacy)
+- `POST /api/init` - Initialize Git repository
+- `POST /api/pull` - Pull changes from remote
+- `POST /api/push` - Push changes to remote
 
-### Code Style
+## Recent Improvements
 
-- Frontend: Follow ESLint configuration
-- Backend: Use `go fmt` and `golint`
-- Write meaningful commit messages
-- Include tests for new features
+- Upgraded to React Router v7 for improved navigation
+- Added robust unsaved changes protection
+- Migrated to client-side Markdown rendering with syntax highlighting
+- Fixed Git integration issues with repository paths
+- Improved error handling for 404 responses
+- Enhanced navigation behavior between pages
+- Added comprehensive test coverage
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU GENERAL PUBLIC LICENSE v3.0. License - see the LICENSE file for details.
 
 ## Acknowledgments
 
-- React team for the amazing frontend library
-- Go team for the efficient backend language
+- React team for the frontend library
+- Go team for the backend language
 - Material-UI team for the component library
 - All contributors who have helped shape this project
