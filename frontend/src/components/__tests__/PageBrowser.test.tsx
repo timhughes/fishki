@@ -1,20 +1,16 @@
 import { render, screen, act } from '@testing-library/react';
 import { PageBrowser } from '../PageBrowser';
 
-// Mock the API with a delayed response to ensure we can test the loading state
+// Create a controlled promise for API mocking
+let resolveGetFiles: (value: any) => void;
+const mockGetFilesPromise = new Promise(resolve => {
+  resolveGetFiles = resolve;
+});
+
+// Mock the API with a controlled promise
 jest.mock('../../api/client', () => ({
   api: {
-    getFiles: jest.fn().mockImplementation(() => {
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve([
-            { path: 'folder/', type: 'directory', name: 'folder' },
-            { path: 'folder/page1.md', type: 'file', name: 'page1.md' },
-            { path: 'page2.md', type: 'file', name: 'page2.md' }
-          ]);
-        }, 100);
-      });
-    })
+    getFiles: jest.fn().mockImplementation(() => mockGetFilesPromise)
   }
 }));
 
@@ -28,34 +24,32 @@ describe('PageBrowser', () => {
   
   beforeEach(() => {
     jest.clearAllMocks();
-    // Use fake timers to control setTimeout
-    jest.useFakeTimers();
-  });
-  
-  afterEach(() => {
-    jest.useRealTimers();
   });
   
   test('renders files after loading', async () => {
     // Render component
-    let container;
+    let renderResult: ReturnType<typeof render>;
+    
     await act(async () => {
-      const renderResult = render(
+      renderResult = render(
         <PageBrowser 
           onFileSelect={mockOnFileSelect}
           selectedFile=""
           refreshTrigger={0}
         />
       );
-      container = renderResult.container;
     });
     
     // Initially, it should show loading state
-    expect(container.textContent).toContain('Loading files');
+    expect(renderResult!.container.textContent).toContain('Loading files');
     
-    // Fast-forward timers to resolve the API call
+    // Resolve the API call with data
     await act(async () => {
-      jest.advanceTimersByTime(200);
+      resolveGetFiles([
+        { path: 'folder/', type: 'directory', name: 'folder' },
+        { path: 'folder/page1.md', type: 'file', name: 'page1.md' },
+        { path: 'page2.md', type: 'file', name: 'page2.md' }
+      ]);
     });
     
     // Now it should show the files

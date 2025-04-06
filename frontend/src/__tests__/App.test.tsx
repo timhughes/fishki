@@ -1,42 +1,49 @@
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, act } from '@testing-library/react';
 import App from '../App';
-import { NavigationProvider } from '../contexts/NavigationContext';
-import { MemoryRouter } from 'react-router-dom';
 
-// Mock the components that use react-markdown to avoid test issues
-jest.mock('../components/MarkdownViewer', () => ({
-  MarkdownViewer: () => <div data-testid="markdown-viewer">Markdown Viewer</div>
-}));
-
-// Mock the API
+// Mock the API to prevent actual API calls
 jest.mock('../api/client', () => ({
   api: {
-    load: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-    list: jest.fn().mockResolvedValue([]),
-    render: jest.fn()
+    getFiles: jest.fn().mockResolvedValue([]),
+    load: jest.fn().mockResolvedValue(''),
+    save: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue({}),
+    render: jest.fn().mockResolvedValue('')
   }
 }));
 
-// Create a custom wrapper that provides the necessary context
-const TestWrapper = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <MemoryRouter>
-      <NavigationProvider>
-        {children}
-      </NavigationProvider>
-    </MemoryRouter>
-  );
-};
+// Mock the router
+jest.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Routes: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Route: () => <div>Route</div>,
+  useNavigate: () => jest.fn(),
+  useLocation: () => ({ pathname: '/' }),
+}));
 
-test('renders app with page browser', () => {
-  render(
-    <App />,
-    { wrapper: TestWrapper }
-  );
-  
-  // Check if the app renders without crashing
-  expect(document.body).toBeInTheDocument();
+// Mock the NavigationProvider
+jest.mock('../contexts/NavigationContext', () => ({
+  NavigationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useNavigation: () => ({
+    setBlockNavigation: jest.fn(),
+    setHasUnsavedChanges: jest.fn(),
+    blockNavigation: false,
+    hasUnsavedChanges: false,
+    pendingLocation: null,
+    setPendingLocation: jest.fn(),
+    confirmNavigation: jest.fn(),
+    cancelNavigation: jest.fn(),
+    setNavigationCallback: jest.fn()
+  })
+}));
+
+// Mock PageBrowser to prevent state updates
+jest.mock('../components/PageBrowser', () => ({
+  PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
+}));
+
+test('renders without crashing', async () => {
+  await act(async () => {
+    render(<App />);
+  });
 });

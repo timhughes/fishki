@@ -1,11 +1,20 @@
-import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MarkdownViewer } from '../MarkdownViewer';
-import { api } from '../../api/client';
 
 // Mock the DeleteConfirmDialog component
 jest.mock('../DeleteConfirmDialog', () => ({
-  DeleteConfirmDialog: ({ open, onConfirm, onCancel }) => (
+  DeleteConfirmDialog: ({ 
+    open, 
+    onConfirm, 
+    onCancel 
+  }: { 
+    open: boolean; 
+    onConfirm: () => void; 
+    onCancel: () => void;
+    pagePath?: string;
+    deleting?: boolean;
+    error?: string;
+  }) => (
     open ? (
       <div data-testid="delete-dialog">
         <button onClick={onConfirm}>Confirm Delete</button>
@@ -22,9 +31,9 @@ const mockRender = jest.fn();
 
 jest.mock('../../api/client', () => ({
   api: {
-    load: (...args) => mockLoad(...args),
-    delete: (...args) => mockDelete(...args),
-    render: (...args) => mockRender(...args)
+    load: (...args: unknown[]) => mockLoad(...args),
+    delete: (...args: unknown[]) => mockDelete(...args),
+    render: (...args: unknown[]) => mockRender(...args)
   }
 }));
 
@@ -57,8 +66,8 @@ describe('MarkdownViewer', () => {
   });
   
   test('loads and displays content', async () => {
-    let resolveLoad: (value: string) => void;
-    mockLoad.mockImplementation(() => new Promise(resolve => {
+    let resolveLoad: ((value: string) => void) | undefined;
+    mockLoad.mockImplementation(() => new Promise<string>(resolve => {
       resolveLoad = resolve;
     }));
     
@@ -78,7 +87,9 @@ describe('MarkdownViewer', () => {
     
     // Resolve the load promise
     await act(async () => {
-      resolveLoad!('# Test Content');
+      if (resolveLoad) {
+        resolveLoad('# Test Content');
+      }
     });
     
     // Check if content is displayed

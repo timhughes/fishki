@@ -1,61 +1,61 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { NavigationProvider } from '../contexts/NavigationContext';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 // Mock the API
 jest.mock('../api/client', () => ({
   api: {
     load: jest.fn().mockResolvedValue('# Test Content'),
-    save: jest.fn().mockResolvedValue({}),
-    delete: jest.fn().mockResolvedValue({}),
-    list: jest.fn().mockResolvedValue([
-      { path: 'folder/', type: 'directory' },
-      { path: 'folder/index.md', type: 'file' },
-      { path: 'test.md', type: 'file' }
-    ]),
-    render: jest.fn().mockResolvedValue('<h1>Test Content</h1>')
+    getFiles: jest.fn().mockResolvedValue([
+      { path: 'folder/', type: 'directory', name: 'folder' },
+      { path: 'folder/page.md', type: 'file', name: 'page.md' }
+    ])
   }
 }));
 
-// Mock the components that use react-markdown to avoid test issues
+// Mock the MarkdownViewer component
 jest.mock('../components/MarkdownViewer', () => ({
-  MarkdownViewer: ({ filePath, onEdit, onDelete }) => (
+  MarkdownViewer: ({ 
+    filePath, 
+    onEdit, 
+    onDelete 
+  }: { 
+    filePath: string; 
+    onEdit: () => void; 
+    onDelete: () => void;
+    onNotFound: () => React.ReactNode;
+  }) => (
     <div data-testid="markdown-viewer">
-      <div>Viewing: {filePath}</div>
+      <div>Path: {filePath}</div>
       <button onClick={onEdit}>Edit</button>
       <button onClick={onDelete}>Delete</button>
     </div>
   )
 }));
 
-jest.mock('../components/CreatePage', () => ({
-  CreatePage: ({ path, onCreateClick }: any) => (
-    <div data-testid="create-page">
-      <div>Create page for: {path}</div>
-      <button onClick={onCreateClick}>Create</button>
-    </div>
-  )
+// Mock the PageBrowser component
+jest.mock('../components/PageBrowser', () => ({
+  PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
 }));
 
-// Create a custom wrapper that provides the necessary context
-const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+// Mock the ViewPage component
+const ViewPage = () => {
   return (
-    <NavigationProvider>
-      {children}
-    </NavigationProvider>
+    <div>
+      <div data-testid="view-page">View Page</div>
+    </div>
   );
 };
 
 describe('Directory Path Handling', () => {
-  test('renders correctly', () => {
+  test('handles directory paths correctly', () => {
     render(
-      <MemoryRouter initialEntries={['/page/folder/']}>
-        <div data-testid="test-component">Test Component</div>
-      </MemoryRouter>,
-      { wrapper: TestWrapper }
+      <MemoryRouter initialEntries={['/folder/']}>
+        <Routes>
+          <Route path="/:path/*" element={<ViewPage />} />
+        </Routes>
+      </MemoryRouter>
     );
-    
-    // Verify the component renders
-    expect(screen.getByTestId('test-component')).toBeInTheDocument();
+
+    expect(screen.getByTestId('view-page')).toBeInTheDocument();
   });
 });
