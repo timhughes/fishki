@@ -2,12 +2,19 @@ import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PageBrowser } from '../PageBrowser';
 import { api } from '../../api/client';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock the API client
 jest.mock('../../api/client', () => ({
   api: {
     getFiles: jest.fn(),
   },
+}));
+
+// Mock useNavigate
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => jest.fn(),
 }));
 
 describe('PageBrowser', () => {
@@ -26,12 +33,20 @@ describe('PageBrowser', () => {
   });
 
   it('renders loading state initially', () => {
-    render(<PageBrowser onFileSelect={() => {}} />);
+    render(
+      <MemoryRouter>
+        <PageBrowser onFileSelect={() => {}} />
+      </MemoryRouter>
+    );
     expect(screen.getByText('Loading files...')).toBeInTheDocument();
   });
 
   it('renders files after loading', async () => {
-    render(<PageBrowser onFileSelect={() => {}} />);
+    render(
+      <MemoryRouter>
+        <PageBrowser onFileSelect={() => {}} />
+      </MemoryRouter>
+    );
     
     await act(async () => {
       await Promise.resolve();
@@ -43,7 +58,11 @@ describe('PageBrowser', () => {
 
   it('calls onFileSelect when clicking a file', async () => {
     const handleFileSelect = jest.fn();
-    render(<PageBrowser onFileSelect={handleFileSelect} />);
+    render(
+      <MemoryRouter>
+        <PageBrowser onFileSelect={handleFileSelect} />
+      </MemoryRouter>
+    );
     
     await act(async () => {
       await Promise.resolve();
@@ -55,7 +74,11 @@ describe('PageBrowser', () => {
   });
 
   it('highlights selected file', async () => {
-    render(<PageBrowser onFileSelect={() => {}} selectedFile="welcome.md" />);
+    render(
+      <MemoryRouter>
+        <PageBrowser onFileSelect={() => {}} selectedFile="welcome.md" />
+      </MemoryRouter>
+    );
     
     await act(async () => {
       await Promise.resolve();

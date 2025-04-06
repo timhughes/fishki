@@ -39,7 +39,21 @@ export class ApiClient {
   }
 
   async load(filename: string) {
-    return this.request(`/api/load?filename=${encodeURIComponent(filename)}`);
+    // Don't attempt to load paths ending with / directly
+    if (filename.endsWith('/')) {
+      throw new ApiError(400, 'Cannot load a directory directly');
+    }
+    
+    try {
+      return await this.request(`/api/load?filename=${encodeURIComponent(filename)}`);
+    } catch (err) {
+      // Standardize 404 errors to ensure they're properly caught by components
+      if (err instanceof ApiError && err.status === 404) {
+        const standardError = new ApiError(404, '404');
+        throw standardError;
+      }
+      throw err;
+    }
   }
 
   async init(path: string) {

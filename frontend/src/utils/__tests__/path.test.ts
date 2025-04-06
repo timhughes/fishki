@@ -80,6 +80,10 @@ describe('Path utilities', () => {
       expect(addMdExtension('/path/to/file.md')).toBe('/path/to/file.md');
     });
     
+    it('does not add extension to paths ending with /', () => {
+      expect(addMdExtension('/path/to/folder/')).toBe('/path/to/folder/');
+    });
+    
     it('handles empty path', () => {
       expect(addMdExtension('')).toBe('');
     });

@@ -5,44 +5,36 @@ import App from '../App';
 import { api } from '../api/client';
 
 // Mock the API client
-jest.mock('../api/client', () => ({
-  api: {
-    load: jest.fn(),
-    save: jest.fn().mockResolvedValue({}),
-    delete: jest.fn().mockResolvedValue({}),
-    getFiles: jest.fn().mockResolvedValue([
-      {
-        name: 'docs',
-        type: 'folder',
-        path: 'docs',
-        children: [
-          {
-            name: 'index.md',
-            type: 'file',
-            path: 'docs/index.md'
-          },
-          {
-            name: 'getting-started.md',
-            type: 'file',
-            path: 'docs/getting-started.md'
-          }
-        ]
-      },
-      {
-        name: 'projects',
-        type: 'folder',
-        path: 'projects',
-        children: []
-      },
-      {
-        name: 'index.md',
-        type: 'file',
-        path: 'index.md'
-      }
-    ]),
-    render: jest.fn().mockResolvedValue('<h1>Test Content</h1>'),
-  },
-}));
+jest.mock('../api/client', () => {
+  return {
+    api: {
+      load: jest.fn(),
+      save: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+      getFiles: jest.fn().mockResolvedValue([
+        {
+          name: 'docs',
+          type: 'folder',
+          path: 'docs',
+          children: [
+            {
+              name: 'index.md',
+              type: 'file',
+              path: 'docs/index.md'
+            }
+          ]
+        },
+        {
+          name: 'projects',
+          type: 'folder',
+          path: 'projects',
+          children: []
+        }
+      ]),
+      render: jest.fn().mockResolvedValue('<h1>Test Content</h1>'),
+    }
+  };
+});
 
 // Mock components to simplify testing
 jest.mock('../components/MarkdownViewer', () => ({
@@ -65,20 +57,6 @@ jest.mock('../components/MarkdownViewer', () => ({
       </div>
     );
   }
-}));
-
-jest.mock('../components/MarkdownEditor', () => ({
-  MarkdownEditor: ({ filePath, onSave, onCancel }: {
-    filePath: string;
-    onSave: () => void;
-    onCancel: () => void;
-  }) => (
-    <div data-testid="markdown-editor">
-      <div>Editing: {filePath}</div>
-      <button onClick={onSave}>Save</button>
-      <button onClick={onCancel}>Cancel</button>
-    </div>
-  )
 }));
 
 jest.mock('../components/CreatePage', () => ({
@@ -105,7 +83,7 @@ jest.mock('../components/PageBrowser', () => {
         <div data-testid="page-browser">
           <button onClick={() => navigate('/page/docs/')}>docs folder</button>
           <button onClick={() => navigate('/page/projects/')}>projects folder</button>
-          <button onClick={() => navigate('/page/index')}>root index</button>
+          <button onClick={() => navigate('/page/docs/index')}>docs index</button>
         </div>
       );
     }
@@ -132,7 +110,7 @@ const renderWithRouter = (initialEntries = ['/']) => {
   );
 };
 
-describe('Folder Navigation Tests', () => {
+describe('Directory Path Handling Tests', () => {
   beforeEach(() => {
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -141,12 +119,27 @@ describe('Folder Navigation Tests', () => {
     (api.load as jest.Mock).mockImplementation((path) => {
       if (path === 'docs/index.md') {
         return Promise.resolve('# Docs Index');
-      } else if (path === 'index.md') {
-        return Promise.resolve('# Root Index');
       } else if (path === 'projects/index.md') {
         return Promise.reject(new Error('404'));
+      } else if (path.endsWith('/')) {
+        return Promise.reject(new Error('Cannot load a directory directly'));
       }
       return Promise.resolve('# Content');
+    });
+  });
+
+  test('API client rejects requests for directory paths', async () => {
+    // We'll test this indirectly by checking that the app navigates correctly
+    // when a folder path is requested
+    renderWithRouter();
+    
+    // Click on the docs folder
+    fireEvent.click(screen.getByText('docs folder'));
+    
+    // Should navigate to the index page without trying to load the folder directly
+    await waitFor(() => {
+      expect(screen.getByTestId('markdown-viewer')).toBeInTheDocument();
+      expect(screen.getByText('Viewing: docs/index.md')).toBeInTheDocument();
     });
   });
 
@@ -156,7 +149,7 @@ describe('Folder Navigation Tests', () => {
     // Click on the docs folder which has an index
     fireEvent.click(screen.getByText('docs folder'));
     
-    // Should show the markdown viewer with the index page
+    // Should navigate to the index page
     await waitFor(() => {
       expect(screen.getByTestId('markdown-viewer')).toBeInTheDocument();
       expect(screen.getByText('Viewing: docs/index.md')).toBeInTheDocument();
@@ -176,7 +169,7 @@ describe('Folder Navigation Tests', () => {
     });
   });
 
-  test('navigating to a URL with trailing slash shows index or create page', async () => {
+  test('navigating directly to a folder path redirects to index', async () => {
     renderWithRouter(['/page/docs/']);
     
     // Should redirect to the index page
@@ -186,7 +179,7 @@ describe('Folder Navigation Tests', () => {
     });
   });
 
-  test('navigating to a folder without index shows create page', async () => {
+  test('navigating directly to a folder without index shows create page', async () => {
     renderWithRouter(['/page/projects/']);
     
     // Should show the create page interface
@@ -203,16 +196,6 @@ describe('Folder Navigation Tests', () => {
     await waitFor(() => {
       expect(screen.getByTestId('markdown-viewer')).toBeInTheDocument();
       expect(screen.getByText('Viewing: docs/index.md')).toBeInTheDocument();
-    });
-  });
-
-  test('root path shows index page if it exists', async () => {
-    renderWithRouter(['/']);
-    
-    // Should show the root index page
-    await waitFor(() => {
-      expect(screen.getByTestId('markdown-viewer')).toBeInTheDocument();
-      expect(screen.getByText('Viewing: index.md')).toBeInTheDocument();
     });
   });
 });

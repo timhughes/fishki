@@ -143,6 +143,12 @@ func (h *Handler) loadHandler() http.HandlerFunc {
 			http.Error(w, "Filename is required", http.StatusBadRequest)
 			return
 		}
+		
+		// Reject requests for directories (paths ending with /)
+		if filename[len(filename)-1] == '/' {
+			http.Error(w, "Cannot load directory directly", http.StatusBadRequest)
+			return
+		}
 
 		filePath := filepath.Join(h.config.WikiPath, filepath.Clean(filename))
 

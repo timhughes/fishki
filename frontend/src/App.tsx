@@ -42,38 +42,33 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const [pageDeleted, setPageDeleted] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
+  // Reset pageDeleted state when path changes
+  React.useEffect(() => {
+    setPageDeleted(false);
+  }, [path]);
+  
   // Check if this is a folder path and should load an index file
   React.useEffect(() => {
     const checkForIndex = async () => {
+      // Skip processing if we're already on an index page
+      if (location.pathname.endsWith('/index')) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       
       // Handle paths ending with slash or explicit folder navigation
       const isFolder = path?.endsWith('/') || location.pathname.endsWith('/');
-      const cleanPath = path?.endsWith('/') ? path.slice(0, -1) : path;
       
-      try {
-        if (isFolder || !path) {
-          // For folder paths, try to load the index file
-          const indexPath = cleanPath ? `${cleanPath}/index.md` : 'index.md';
-          try {
-            await api.load(indexPath);
-            // If successful and we're not already viewing the index, navigate to it
-            if (!cleanPath?.endsWith('/index') && cleanPath !== 'index') {
-              navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
-            }
-          } catch (err) {
-            // If index doesn't exist, stay on the page view but show create page interface
-            // We'll handle this in the render logic below
-            if (!cleanPath?.endsWith('/index') && cleanPath !== 'index') {
-              navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
-            }
-          }
-        }
-      } catch (err) {
-        // Handle any other errors
-      } finally {
-        setLoading(false);
+      if (isFolder || !path) {
+        // For folder paths, navigate directly to the index path
+        const cleanPath = path?.replace(/\/$/, ''); // Remove trailing slash if present
+        navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+        return; // Exit early, we're navigating away
       }
+      
+      setLoading(false);
     };
     
     checkForIndex();
@@ -220,20 +215,9 @@ function App() {
     }
   };
 
-  // Check if the current path is a folder and has an index file
-  const checkForIndexFile = React.useCallback(async (path: string) => {
-    try {
-      // Try to load the index file for the current path
-      const indexPath = path ? `${path}/index` : 'index';
-      await api.load(addMdExtension(indexPath));
-      // If successful, navigate to the index file
-      return true;
-    } catch (err) {
-      // If the index file doesn't exist, do nothing
-      return false;
-    }
-  }, [navigate]);
-
+  // This function was previously used for index file checking but is now handled differently
+  // Removing it completely to avoid build errors
+  
   const handlePageCreated = () => {
     setRefreshTrigger(prev => prev + 1);
   };

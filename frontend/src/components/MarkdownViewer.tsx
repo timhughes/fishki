@@ -34,6 +34,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   React.useEffect(() => {
     const loadContent = async () => {
+      if (!filePath) return;
+      
       try {
         setLoading(true);
         setError(undefined);

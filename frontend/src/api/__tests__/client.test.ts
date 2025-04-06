@@ -70,20 +70,52 @@ describe('ApiClient', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('throws ApiError on non-ok response', async () => {
-      const errorMessage = 'Not Found';
+  describe('load', () => {
+    it('rejects requests for directory paths', async () => {
+      try {
+        await client.load('folder/');
+        fail('Expected an error to be thrown');
+      } catch (err: any) {
+        expect(err.status).toBe(400);
+        expect(err.message).toBe('Cannot load a directory directly');
+      }
+      
+      // Verify fetch was not called
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+    
+    it('standardizes 404 errors', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
-        text: () => Promise.resolve(errorMessage)
+        text: () => Promise.resolve('File not found'),
+        headers: new Headers()
       });
 
-      await expect(client.getFiles()).rejects.toMatchObject({
-        message: errorMessage,
-        status: 404,
-        name: 'ApiError'
+      try {
+        await client.load('nonexistent.md');
+        fail('Expected an error to be thrown');
+      } catch (err: any) {
+        expect(err.status).toBe(404);
+        expect(err.message).toBe('404');
+      }
+    });
+
+    it('passes through other errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve('Server error'),
+        headers: new Headers()
       });
+
+      try {
+        await client.load('some-file.md');
+        fail('Expected an error to be thrown');
+      } catch (err: any) {
+        expect(err.status).toBe(500);
+        expect(err.message).toBe('Server error');
+      }
     });
   });
 

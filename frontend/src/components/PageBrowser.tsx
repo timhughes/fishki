@@ -74,7 +74,8 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
                   } else if (item.type === 'folder') {
                     // When clicking on a folder, navigate to its path with trailing slash
                     // This will trigger the folder handling logic in ViewPage
-                    navigate(`/page/${item.path}/`);
+                    const folderPath = `${item.path}/`;
+                    navigate(`/page/${folderPath}`);
                   }
                 }}
                 dense

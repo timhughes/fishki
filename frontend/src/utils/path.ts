@@ -1,5 +1,9 @@
 export const addMdExtension = (path: string): string => {
   if (!path) return path;
+  
+  // Don't add .md extension to paths ending with /
+  if (path.endsWith('/')) return path;
+  
   return path.endsWith('.md') ? path : `${path}.md`;
 };
 
