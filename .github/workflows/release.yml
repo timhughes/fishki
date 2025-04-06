@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  packages: write
+  releases: write
+
 jobs:
   build:
     name: Build Release
@@ -67,6 +72,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: build
+    # These permissions are already covered by the top-level permissions
+    # but keeping them here for clarity in this job
     permissions:
       contents: read
       packages: write
