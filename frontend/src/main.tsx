@@ -5,7 +5,7 @@ import App from './App';
 import { NavigationProvider } from './contexts/NavigationContext';
 import './index.css';
 
-// Create a data router to support useBlocker
+// Create a data router with React Router v7
 const router = createBrowserRouter([
   {
     path: "/*",
@@ -14,7 +14,7 @@ const router = createBrowserRouter([
         <App />
       </NavigationProvider>
     ),
-  },
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

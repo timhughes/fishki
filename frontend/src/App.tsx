@@ -36,7 +36,8 @@ const theme = createTheme({
 
 // Route components
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
-  const { '*': path } = useParams();
+  const params = useParams();
+  const path = params['*'] || '';
   const navigate = useNavigate();
   const location = useLocation();
   const [pageDeleted, setPageDeleted] = React.useState(false);
@@ -115,7 +116,8 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
 };
 
 const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
-  const { '*': path } = useParams();
+  const params = useParams();
+  const path = params['*'] || '';
   const navigate = useNavigate();
   const [initialContent, setInitialContent] = React.useState('');
   const [loading, setLoading] = React.useState(true);
@@ -214,9 +216,6 @@ function App() {
       navigate(`/page/${cleanPath}`);
     }
   };
-
-  // This function was previously used for index file checking but is now handled differently
-  // Removing it completely to avoid build errors
   
   const handlePageCreated = () => {
     setRefreshTrigger(prev => prev + 1);

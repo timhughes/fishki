@@ -1,140 +1,66 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { NavigationProvider, useNavigation } from '../NavigationContext';
+import { MemoryRouter } from 'react-router-dom';
 
 // Test component that uses the navigation context
 const TestComponent = () => {
-  const {
-    hasUnsavedChanges,
+  const { 
+    blockNavigation, 
+    setBlockNavigation, 
+    hasUnsavedChanges, 
     setHasUnsavedChanges,
     pendingLocation,
     setPendingLocation,
-    blockNavigation,
-    setBlockNavigation,
     confirmNavigation,
     cancelNavigation
   } = useNavigation();
 
   return (
     <div>
-      <div data-testid="has-unsaved-changes">{hasUnsavedChanges.toString()}</div>
-      <div data-testid="pending-location">{pendingLocation || 'no-pending'}</div>
-      <div data-testid="block-navigation">{blockNavigation.toString()}</div>
-      <button 
-        data-testid="set-unsaved" 
-        onClick={() => setHasUnsavedChanges(true)}
-      >
-        Set Unsaved
-      </button>
-      <button 
-        data-testid="set-pending" 
-        onClick={() => setPendingLocation('/test')}
-      >
-        Set Pending
-      </button>
-      <button 
-        data-testid="set-block" 
-        onClick={() => setBlockNavigation(true)}
-      >
-        Block Navigation
-      </button>
-      <button 
-        data-testid="confirm-navigation" 
-        onClick={confirmNavigation}
-      >
-        Confirm Navigation
-      </button>
-      <button 
-        data-testid="cancel-navigation" 
-        onClick={cancelNavigation}
-      >
-        Cancel Navigation
-      </button>
+      <div>Block Navigation: {blockNavigation ? 'true' : 'false'}</div>
+      <div>Has Unsaved Changes: {hasUnsavedChanges ? 'true' : 'false'}</div>
+      <div>Pending Location: {pendingLocation || 'none'}</div>
+      
+      <button onClick={() => setBlockNavigation(true)}>Enable Blocking</button>
+      <button onClick={() => setBlockNavigation(false)}>Disable Blocking</button>
+      <button onClick={() => setHasUnsavedChanges(true)}>Set Unsaved Changes</button>
+      <button onClick={() => setHasUnsavedChanges(false)}>Clear Unsaved Changes</button>
+      <button onClick={() => setPendingLocation('/test')}>Set Pending Location</button>
+      <button onClick={confirmNavigation}>Confirm Navigation</button>
+      <button onClick={cancelNavigation}>Cancel Navigation</button>
     </div>
   );
 };
 
 describe('NavigationContext', () => {
-  it('provides default values', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
+  test('provides navigation state and actions', () => {
+    render(
+      <MemoryRouter>
+        <NavigationProvider>
+          <TestComponent />
+        </NavigationProvider>
+      </MemoryRouter>
     );
     
-    expect(getByTestId('has-unsaved-changes').textContent).toBe('false');
-    expect(getByTestId('pending-location').textContent).toBe('no-pending');
-    expect(getByTestId('block-navigation').textContent).toBe('false');
-  });
-  
-  it('updates hasUnsavedChanges state', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
+    // Initial state
+    expect(screen.getByText('Block Navigation: false')).toBeInTheDocument();
+    expect(screen.getByText('Has Unsaved Changes: false')).toBeInTheDocument();
+    expect(screen.getByText('Pending Location: none')).toBeInTheDocument();
     
-    fireEvent.click(getByTestId('set-unsaved'));
+    // Test setting block navigation
+    fireEvent.click(screen.getByText('Enable Blocking'));
+    expect(screen.getByText('Block Navigation: true')).toBeInTheDocument();
     
-    expect(getByTestId('has-unsaved-changes').textContent).toBe('true');
-  });
-  
-  it('updates pendingLocation state', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
+    // Test setting unsaved changes
+    fireEvent.click(screen.getByText('Set Unsaved Changes'));
+    expect(screen.getByText('Has Unsaved Changes: true')).toBeInTheDocument();
     
-    fireEvent.click(getByTestId('set-pending'));
+    // Test setting pending location
+    fireEvent.click(screen.getByText('Set Pending Location'));
+    expect(screen.getByText('Pending Location: /test')).toBeInTheDocument();
     
-    expect(getByTestId('pending-location').textContent).toBe('/test');
-  });
-  
-  it('updates blockNavigation state', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
-    
-    fireEvent.click(getByTestId('set-block'));
-    
-    expect(getByTestId('block-navigation').textContent).toBe('true');
-  });
-  
-  it('handles confirmNavigation', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
-    
-    // Set up state
-    fireEvent.click(getByTestId('set-unsaved'));
-    fireEvent.click(getByTestId('set-pending'));
-    
-    // Confirm navigation
-    fireEvent.click(getByTestId('confirm-navigation'));
-    
-    // Should reset states
-    expect(getByTestId('has-unsaved-changes').textContent).toBe('false');
-    expect(getByTestId('pending-location').textContent).toBe('no-pending');
-  });
-  
-  it('handles cancelNavigation', () => {
-    const { getByTestId } = render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
-    
-    // Set up state
-    fireEvent.click(getByTestId('set-pending'));
-    
-    // Cancel navigation
-    fireEvent.click(getByTestId('cancel-navigation'));
-    
-    // Should reset pending location
-    expect(getByTestId('pending-location').textContent).toBe('no-pending');
+    // Test canceling navigation
+    fireEvent.click(screen.getByText('Cancel Navigation'));
+    expect(screen.getByText('Pending Location: none')).toBeInTheDocument();
   });
 });

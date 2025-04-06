@@ -15,6 +15,9 @@ export const NavigationBlocker: React.FC = () => {
     }
   }, [pendingLocation, blockNavigation, navigate, confirmNavigation]);
 
+  // With React Router v7, most of the blocking logic is now handled by the useBlocker hook
+  // in the NavigationContext, so this component is simpler
+
   // This component doesn't render anything
   return null;
 };
