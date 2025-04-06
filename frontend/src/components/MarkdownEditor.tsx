@@ -11,6 +11,12 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 import { api } from '../api/client';
 import { useNavigation } from '../contexts/NavigationContext';
 import { MarkdownToolbar } from './MarkdownToolbar';
@@ -32,7 +38,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [content, setContent] = React.useState(initialContent);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
-  const [renderedContent, setRenderedContent] = React.useState('');
   
   // Track if content has been modified
   const [hasChanges, setHasChanges] = React.useState(false);
@@ -90,18 +95,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setContent(newContent);
     // The effect will handle updating hasChanges
   };
-
-  React.useEffect(() => {
-    const renderPreview = async () => {
-      try {
-        const rendered = await api.render(content);
-        setRenderedContent(rendered);
-      } catch (err) {
-        console.error('Failed to render preview:', err);
-      }
-    };
-    renderPreview();
-  }, [content]);
 
   // Add protection when component unmounts
   React.useEffect(() => {
@@ -222,43 +215,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               height: '500px',
               p: 2,
               overflowY: 'auto',
-              '& img': {
-                maxWidth: '100%',
-                height: 'auto',
-              },
-              '& pre': {
-                bgcolor: 'grey.100',
-                borderRadius: 1,
-                overflow: 'auto',
-              },
-              '& code': {
-                bgcolor: 'grey.100',
-                px: 0.5,
-                borderRadius: 0.5,
-                fontFamily: 'monospace',
-              },
-              '& blockquote': {
-                borderLeft: 4,
-                borderColor: 'grey.300',
-                pl: 2,
-                ml: 0,
-                color: 'text.secondary',
-              },
-              '& table': {
-                borderCollapse: 'collapse',
-                width: '100%',
-                '& th, & td': {
-                  border: 1,
-                  borderColor: 'grey.300',
-                  p: 1,
-                },
-                '& th': {
-                  bgcolor: 'grey.50',
-                },
-              },
             }}
-            dangerouslySetInnerHTML={{ __html: renderedContent }}
-          />
+          >
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+            >
+              {content}
+            </ReactMarkdown>
+          </Paper>
         </Box>
       </Box>
     </Paper>
