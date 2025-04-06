@@ -6,154 +6,101 @@ on:
       - 'v*'
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-  
-  build-linux:
-    name: Build Linux
-    needs: create-release
+  build:
+    name: Build Release
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.21'
-    
+        
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-    
-    - name: Build Frontend
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+        
+    - name: Install frontend dependencies
+      run: cd frontend && npm ci
+      
+    - name: Build frontend
+      run: cd frontend && npm run build
+      
+    - name: Get version
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Build for Linux
       run: |
-        cd frontend
-        npm ci
-        npm run build
-    
-    - name: Copy Frontend to Static Directory
+        mkdir -p dist
+        GOOS=linux GOARCH=amd64 go build -v -o dist/fishki-${{ steps.get_version.outputs.VERSION }}-linux-amd64 ./cmd/fishki-server
+        
+    - name: Build for macOS
       run: |
-        mkdir -p static
-        cp -r frontend/dist/* static/
-    
-    - name: Build Backend
+        GOOS=darwin GOARCH=amd64 go build -v -o dist/fishki-${{ steps.get_version.outputs.VERSION }}-darwin-amd64 ./cmd/fishki-server
+        GOOS=darwin GOARCH=arm64 go build -v -o dist/fishki-${{ steps.get_version.outputs.VERSION }}-darwin-arm64 ./cmd/fishki-server
+        
+    - name: Build for Windows
       run: |
-        go mod download
-        GOOS=linux GOARCH=amd64 go build -o fishki-linux-amd64 ./cmd/fishki-server
-    
-    - name: Create Archive
-      run: |
-        tar -czf fishki-linux-amd64.tar.gz fishki-linux-amd64 static/
-    
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v1
-      with:
-        files: fishki-linux-amd64.tar.gz
-  
-  build-macos:
-    name: Build macOS
-    needs: create-release
-    runs-on: macos-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-    
-    - name: Build Frontend
-      run: |
-        cd frontend
-        npm ci
-        npm run build
-    
-    - name: Copy Frontend to Static Directory
-      run: |
-        mkdir -p static
-        cp -r frontend/dist/* static/
-    
-    - name: Build Backend
-      run: |
-        go mod download
-        GOOS=darwin GOARCH=amd64 go build -o fishki-darwin-amd64 ./cmd/fishki-server
-        GOOS=darwin GOARCH=arm64 go build -o fishki-darwin-arm64 ./cmd/fishki-server
-    
-    - name: Create Archives
-      run: |
-        tar -czf fishki-darwin-amd64.tar.gz fishki-darwin-amd64 static/
-        tar -czf fishki-darwin-arm64.tar.gz fishki-darwin-arm64 static/
-    
-    - name: Upload Release Assets
+        GOOS=windows GOARCH=amd64 go build -v -o dist/fishki-${{ steps.get_version.outputs.VERSION }}-windows-amd64.exe ./cmd/fishki-server
+        
+    - name: Create release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          fishki-darwin-amd64.tar.gz
-          fishki-darwin-arm64.tar.gz
-  
-  build-windows:
-    name: Build Windows
-    needs: create-release
-    runs-on: windows-latest
-    
+          dist/fishki-${{ steps.get_version.outputs.VERSION }}-linux-amd64
+          dist/fishki-${{ steps.get_version.outputs.VERSION }}-darwin-amd64
+          dist/fishki-${{ steps.get_version.outputs.VERSION }}-darwin-arm64
+          dist/fishki-${{ steps.get_version.outputs.VERSION }}-windows-amd64.exe
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+  docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+      
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
       with:
-        go-version: '1.21'
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
       with:
-        node-version: '18'
-    
-    - name: Build Frontend
-      run: |
-        cd frontend
-        npm ci
-        npm run build
-    
-    - name: Copy Frontend to Static Directory
-      run: |
-        mkdir -p static
-        cp -r frontend/dist/* static/
-      shell: bash
-    
-    - name: Build Backend
-      run: |
-        go mod download
-        $env:GOOS = "windows"
-        $env:GOARCH = "amd64"
-        go build -o fishki-windows-amd64.exe ./cmd/fishki-server
-    
-    - name: Create Archive
-      run: |
-        Compress-Archive -Path fishki-windows-amd64.exe, static/* -DestinationPath fishki-windows-amd64.zip
-    
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v1
+        images: ghcr.io/${{ github.repository }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
       with:
-        files: fishki-windows-amd64.zip
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
