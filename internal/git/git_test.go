@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -43,6 +44,22 @@ func TestGitClientMock(t *testing.T) {
 	}
 }
 
+// setupGitConfig configures Git user name and email for the test repository
+func setupGitConfig(t *testing.T, repoPath string) {
+	// Set local Git configuration for the test repository
+	cmd := exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = repoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to set git user.name: %v", err)
+	}
+
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = repoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to set git user.email: %v", err)
+	}
+}
+
 func TestDefaultGitClient(t *testing.T) {
 	client := New()
 	
@@ -63,6 +80,9 @@ func TestDefaultGitClient(t *testing.T) {
 	if err != nil {
 		t.Errorf("Init failed: %v", err)
 	}
+	
+	// Set up Git configuration for the test repository
+	setupGitConfig(t, tempDir)
 	
 	// Verify .git directory was created
 	if _, err := os.Stat(filepath.Join(tempDir, ".git")); os.IsNotExist(err) {

@@ -14,7 +14,25 @@ export const getPageName = (path: string): string => {
 };
 
 export const getParentPath = (path: string): string => {
-  const parts = removeMdExtension(path).split('/');
+  if (!path || path === '/') return '/';
+  
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length === 0) return '/';
+  
   parts.pop();
-  return parts.join('/');
+  return parts.length === 0 ? '/' : '/' + parts.join('/');
+};
+
+export const getPathSegments = (path: string): string[] => {
+  if (!path || path === '/') return [];
+  return path.split('/').filter(Boolean);
+};
+
+export const isRootPath = (path: string): boolean => {
+  return path === '/';
+};
+
+export const joinPaths = (...paths: string[]): string => {
+  const cleanPaths = paths.map(p => p.replace(/^\/+|\/+$/g, '')).filter(Boolean);
+  return cleanPaths.length === 0 ? '/' : '/' + cleanPaths.join('/');
 };
