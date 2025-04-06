@@ -39,6 +39,29 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   const { '*': path } = useParams();
   const navigate = useNavigate();
   const [pageDeleted, setPageDeleted] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  
+  // Check if this is a folder path and should load an index file
+  React.useEffect(() => {
+    const checkForIndex = async () => {
+      setLoading(true);
+      try {
+        // Try to load the index file
+        const indexPath = path ? `${path}/index.md` : 'index.md';
+        await api.load(indexPath);
+        // If successful and we're not already viewing the index, navigate to it
+        if (!path?.endsWith('/index') && path !== 'index') {
+          navigate(`/page/${path ? `${path}/index` : 'index'}`);
+        }
+      } catch (err) {
+        // If index doesn't exist, continue with normal page loading
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkForIndex();
+  }, [path, navigate]);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -52,6 +75,14 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     setPageDeleted(true); // Mark the page as deleted
     onPageDeleted();
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!path || pageDeleted) {
     return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
@@ -167,6 +198,20 @@ function App() {
       navigate(`/page/${cleanPath}`);
     }
   };
+
+  // Check if the current path is a folder and has an index file
+  const checkForIndexFile = React.useCallback(async (path: string) => {
+    try {
+      // Try to load the index file for the current path
+      const indexPath = path ? `${path}/index` : 'index';
+      await api.load(addMdExtension(indexPath));
+      // If successful, navigate to the index file
+      return true;
+    } catch (err) {
+      // If the index file doesn't exist, do nothing
+      return false;
+    }
+  }, [navigate]);
 
   const handlePageCreated = () => {
     setRefreshTrigger(prev => prev + 1);

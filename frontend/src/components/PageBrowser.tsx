@@ -3,6 +3,7 @@ import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Circul
 import { Folder as FolderIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
 import { FileInfo } from '../types/api';
 import { api } from '../api/client';
+import { useNavigate } from 'react-router-dom';
 
 interface PageBrowserProps {
   onFileSelect: (path: string) => void;
@@ -16,7 +17,13 @@ const removeMdExtension = (path: string): string => {
   return path.replace(/\.md$/, '');
 };
 
+// Check if a file is an index file
+const isIndexFile = (name: string): boolean => {
+  return name === 'index.md';
+};
+
 export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selectedFile, refreshTrigger }) => {
+  const navigate = useNavigate();
   const [files, setFiles] = React.useState<FileInfo[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
@@ -39,54 +46,75 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
   }, [loadFiles, refreshTrigger]);  // Refresh when trigger changes
 
   const renderFileTree = (items: FileInfo[], level = 0) => {
-    return items.map((item) => {
-      const cleanPath = removeMdExtension(item.path);
-      const cleanSelected = removeMdExtension(selectedFile || '');
+    return items
+      .filter(item => {
+        // Filter out index.md files from the tree view
+        return !(item.type === 'file' && isIndexFile(item.name));
+      })
+      .map((item) => {
+        const cleanPath = removeMdExtension(item.path);
+        const cleanSelected = removeMdExtension(selectedFile || '');
 
-      return (
-        <Box key={item.path} sx={{ ml: level * 2 }}>
-          <ListItem
-            disablePadding
-            sx={{
-              '& .MuiListItemButton-root': {
-                borderRadius: 1,
-                mb: 0.5,
-              },
-            }}
-          >
-            <ListItemButton
-              selected={cleanSelected === cleanPath}
-              onClick={() => item.type === 'file' && onFileSelect(item.path)}
-              disabled={item.type !== 'file'}
-              dense
-              className={`file-item ${cleanSelected === cleanPath ? 'selected' : ''}`}
+        return (
+          <Box key={item.path} sx={{ ml: level * 2 }}>
+            <ListItem
+              disablePadding
+              sx={{
+                '& .MuiListItemButton-root': {
+                  borderRadius: 1,
+                  mb: 0.5,
+                },
+              }}
             >
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                {item.type === 'folder' ? (
-                  <FolderIcon color="action" fontSize="small" />
-                ) : (
-                  <FileIcon color="action" fontSize="small" />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.type === 'folder' ? item.name : removeMdExtension(item.name)}
-                primaryTypographyProps={{
-                  variant: 'body2',
-                  sx: {
-                    fontWeight: cleanSelected === cleanPath ? 500 : 400,
-                  },
+              <ListItemButton
+                selected={cleanSelected === cleanPath}
+                onClick={() => {
+                  if (item.type === 'file') {
+                    onFileSelect(item.path);
+                  } else if (item.type === 'folder') {
+                    // When clicking on a folder, navigate to its index page if it exists
+                    const indexPath = item.children?.find(child => 
+                      child.type === 'file' && isIndexFile(child.name)
+                    )?.path;
+                    
+                    if (indexPath) {
+                      onFileSelect(indexPath);
+                    } else {
+                      // If no index page exists, just expand/collapse the folder
+                      // This could be enhanced to create an index page
+                      console.log('No index page found for folder:', item.path);
+                    }
+                  }
                 }}
-              />
-            </ListItemButton>
-          </ListItem>
-          {item.children && (
-            <List disablePadding>
-              {renderFileTree(item.children, level + 1)}
-            </List>
-          )}
-        </Box>
-      );
-    });
+                dense
+                className={`file-item ${cleanSelected === cleanPath ? 'selected' : ''}`}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  {item.type === 'folder' ? (
+                    <FolderIcon color="action" fontSize="small" />
+                  ) : (
+                    <FileIcon color="action" fontSize="small" />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.type === 'folder' ? item.name : removeMdExtension(item.name)}
+                  primaryTypographyProps={{
+                    variant: 'body2',
+                    sx: {
+                      fontWeight: cleanSelected === cleanPath ? 500 : 400,
+                    },
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+            {item.children && (
+              <List disablePadding>
+                {renderFileTree(item.children, level + 1)}
+              </List>
+            )}
+          </Box>
+        );
+      });
   };
 
   if (loading && files.length === 0) {  // Show loading only on initial load
