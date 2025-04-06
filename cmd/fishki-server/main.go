@@ -35,6 +35,13 @@ func setupServer() (*http.ServeMux, error) {
 			r.URL.Path = "/index.html"
 		}
 
+		// In test environment, don't try to serve files
+		if web.IsTestEnvironment() {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte("<html><body>Test Environment</body></html>"))
+			return
+		}
+
 		path := "dist" + r.URL.Path
 		content, err := web.WebBuild.ReadFile(path)
 		if err != nil {

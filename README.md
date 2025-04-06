@@ -113,6 +113,9 @@ PORT=3001 go run ./cmd/fishki-server
 
 Run all Go tests:
 ```bash
+# Setup test environment first
+source scripts/setup_test_env.sh
+
 # Run all tests
 go test ./...
 

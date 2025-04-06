@@ -23,11 +23,20 @@ jobs:
     - name: Install dependencies
       run: go mod download
     
+    - name: Setup test environment
+      run: |
+        chmod +x scripts/setup_test_env.sh
+        source scripts/setup_test_env.sh
+    
     - name: Run tests
-      run: go test -v ./...
+      run: |
+        export GO_TESTING=1
+        go test -v ./...
     
     - name: Generate coverage report
-      run: go test -coverprofile=coverage.out ./...
+      run: |
+        export GO_TESTING=1
+        go test -v -coverprofile=coverage.out ./...
     
     # Only upload coverage if it exists and the tests pass
     - name: Upload coverage report
@@ -52,7 +61,20 @@ jobs:
         go-version: '1.21'
         cache: true
     
-    - name: Build
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+    
+    - name: Install frontend dependencies
+      run: cd frontend && npm ci
+    
+    - name: Build frontend
+      run: cd frontend && npm run build
+    
+    - name: Build backend
       run: go build -v ./cmd/fishki-server
     
     - name: Upload binary
@@ -128,8 +150,15 @@ jobs:
     - name: Install golint
       run: go install golang.org/x/lint/golint@latest
     
+    - name: Setup test environment
+      run: |
+        chmod +x scripts/setup_test_env.sh
+        source scripts/setup_test_env.sh
+    
     - name: Run golint
-      run: golint ./... || true  # Don't fail the build if linting issues are found
+      run: |
+        export GO_TESTING=1
+        golint ./... || true  # Don't fail the build if linting issues are found
     
     - name: Set up Node.js
       uses: actions/setup-node@v4
