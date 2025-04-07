@@ -7,7 +7,25 @@ export class ApiError extends Error {
 }
 
 export class ApiClient {
+  private csrfToken: string | null = null;
+
   private async request(url: string, options: RequestInit = {}) {
+    // For state-changing operations, ensure we have a CSRF token
+    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method)) {
+      // Get CSRF token if we don't have one
+      if (!this.csrfToken) {
+        await this.fetchCsrfToken();
+      }
+      
+      // Add CSRF token to headers
+      if (this.csrfToken) {
+        options.headers = {
+          ...options.headers,
+          'X-CSRF-Token': this.csrfToken
+        };
+      }
+    }
+
     const response = await fetch(url, {
       method: options.method || 'GET',
       ...options,
@@ -15,6 +33,7 @@ export class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'same-origin', // Include cookies in requests
     });
 
     if (!response.ok) {
@@ -33,6 +52,21 @@ export class ApiClient {
     return response.text();
   }
 
+  private async fetchCsrfToken() {
+    try {
+      const response = await fetch('/api/csrf-token', {
+        credentials: 'same-origin', // Include cookies in request
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.csrfToken = data.csrfToken;
+      }
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+    }
+  }
+
   async getFiles() {
     const response = await this.request('/api/files');
     return response.files;
@@ -44,8 +78,11 @@ export class ApiClient {
       throw new ApiError(400, 'Cannot load a directory directly');
     }
     
+    // Sanitize the filename
+    const sanitizedFilename = this.sanitizePath(filename);
+    
     try {
-      return await this.request(`/api/load?filename=${encodeURIComponent(filename)}`);
+      return await this.request(`/api/load?filename=${encodeURIComponent(sanitizedFilename)}`);
     } catch (err) {
       // Standardize 404 errors to ensure they're properly caught by components
       if (err instanceof ApiError && err.status === 404) {
@@ -75,9 +112,12 @@ export class ApiClient {
   }
 
   async save(filename: string, content: string) {
+    // Sanitize the filename
+    const sanitizedFilename = this.sanitizePath(filename);
+    
     return this.request('/api/save', {
       method: 'POST',
-      body: JSON.stringify({ filename, content }),
+      body: JSON.stringify({ filename: sanitizedFilename, content }),
     });
   }
 
@@ -93,10 +133,24 @@ export class ApiClient {
   }
 
   async delete(filename: string) {
+    // Sanitize the filename
+    const sanitizedFilename = this.sanitizePath(filename);
+    
     return this.request('/api/delete', {
       method: 'DELETE',
-      body: JSON.stringify({ filename }),
+      body: JSON.stringify({ filename: sanitizedFilename }),
     });
+  }
+
+  // Helper method to sanitize paths
+  private sanitizePath(path: string): string {
+    // Remove any leading slashes
+    let sanitized = path.replace(/^\/+/, '');
+    
+    // Remove any attempts to navigate up directories
+    sanitized = sanitized.replace(/\.\.\//g, '');
+    
+    return sanitized;
   }
 }
 

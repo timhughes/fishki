@@ -1,6 +1,17 @@
 import { ApiClient } from '../client';
 import { FileInfo } from '../../types/api';
 
+// Mock the fetchCsrfToken method
+jest.mock('../client', () => {
+  const originalModule = jest.requireActual('../client');
+  return {
+    ...originalModule,
+    ApiClient: class extends originalModule.ApiClient {
+      fetchCsrfToken = jest.fn().mockResolvedValue(null);
+    }
+  };
+});
+
 describe('ApiClient', () => {
   let client: ApiClient;
   let mockFetch: jest.Mock;
@@ -29,11 +40,11 @@ describe('ApiClient', () => {
 
       await client.init('/path/to/wiki');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/init', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/init', expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ path: '/path/to/wiki' }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' })
+      }));
     });
   });
 
@@ -63,10 +74,10 @@ describe('ApiClient', () => {
       const result = await client.getFiles();
 
       expect(result).toEqual(mockFiles);
-      expect(mockFetch).toHaveBeenCalledWith('/api/files', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/files', expect.objectContaining({
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' })
+      }));
     });
   });
 

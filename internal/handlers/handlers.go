@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/timhughes/fishki/internal/config"
 	"github.com/timhughes/fishki/internal/git"
@@ -33,16 +33,44 @@ func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	// Initialize Git client
 	h.SetGitClient(git.New())
 
-	// Wrap each handler with the access logger middleware
-	mux.Handle("/api/files", AccessLoggerMiddleware(http.HandlerFunc(h.handleFiles)))
-	mux.Handle("/api/load", AccessLoggerMiddleware(http.HandlerFunc(h.loadHandler())))
-	mux.Handle("/api/save", AccessLoggerMiddleware(http.HandlerFunc(h.saveHandler())))
-	mux.Handle("/api/delete", AccessLoggerMiddleware(http.HandlerFunc(h.deleteHandler())))
-	mux.Handle("/api/render", AccessLoggerMiddleware(http.HandlerFunc(h.renderHandler())))
-	mux.Handle("/api/init", AccessLoggerMiddleware(http.HandlerFunc(h.initHandler())))
-	mux.Handle("/api/pull", AccessLoggerMiddleware(http.HandlerFunc(h.pullHandler())))
-	mux.Handle("/api/push", AccessLoggerMiddleware(http.HandlerFunc(h.pushHandler())))
-	mux.Handle("/api/config", AccessLoggerMiddleware(http.HandlerFunc(h.configHandler())))
+	// Create a rate limiter for API endpoints (100 requests per minute)
+	rateLimiter := NewRateLimiter(60*time.Second, 100)
+
+	// Add security middleware
+	securityChain := func(handler http.Handler) http.Handler {
+		return AccessLoggerMiddleware(
+			SecurityHeadersMiddleware(
+				RateLimitMiddleware(rateLimiter)(
+					handler,
+				),
+			),
+		)
+	}
+
+	// Add CSRF protection for state-changing operations
+	writeSecurityChain := func(handler http.Handler) http.Handler {
+		return AccessLoggerMiddleware(
+			SecurityHeadersMiddleware(
+				RateLimitMiddleware(rateLimiter)(
+					CSRFMiddleware(
+						handler,
+					),
+				),
+			),
+		)
+	}
+
+	// Set up API routes
+	mux.Handle("/api/files", securityChain(http.HandlerFunc(h.handleFiles)))
+	mux.Handle("/api/load", securityChain(http.HandlerFunc(h.loadHandler())))
+	mux.Handle("/api/save", writeSecurityChain(http.HandlerFunc(h.saveHandler())))
+	mux.Handle("/api/delete", writeSecurityChain(http.HandlerFunc(h.deleteHandler())))
+	mux.Handle("/api/render", securityChain(http.HandlerFunc(h.renderHandler())))
+	mux.Handle("/api/init", writeSecurityChain(http.HandlerFunc(h.initHandler())))
+	mux.Handle("/api/pull", writeSecurityChain(http.HandlerFunc(h.pullHandler())))
+	mux.Handle("/api/push", writeSecurityChain(http.HandlerFunc(h.pushHandler())))
+	mux.Handle("/api/config", securityChain(http.HandlerFunc(h.configHandler())))
+	mux.Handle("/api/csrf-token", securityChain(http.HandlerFunc(CSRFTokenHandler)))
 }
 
 func (h *Handler) initHandler() http.HandlerFunc {
@@ -66,18 +94,25 @@ func (h *Handler) initHandler() http.HandlerFunc {
 			return
 		}
 
+		// Validate the path is safe
+		absPath, err := filepath.Abs(request.Path)
+		if err != nil {
+			http.Error(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
+
 		if h.git == nil {
 			http.Error(w, "Git client not initialized", http.StatusInternalServerError)
 			return
 		}
 
-		if err := h.git.Init(request.Path); err != nil {
+		if err := h.git.Init(absPath); err != nil {
 			http.Error(w, "Failed to initialize repository: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Update the config with the new wiki path
-		h.config.WikiPath = request.Path
+		h.config.WikiPath = absPath
 		if err := config.SaveConfig(h.config); err != nil {
 			http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -113,17 +148,24 @@ func (h *Handler) configHandler() http.HandlerFunc {
 				return
 			}
 			
+			// Validate the path is safe
+			absPath, err := filepath.Abs(request.WikiPath)
+			if err != nil {
+				http.Error(w, "Invalid path", http.StatusBadRequest)
+				return
+			}
+			
 			// Validate that the path exists
-			if _, err := os.Stat(request.WikiPath); os.IsNotExist(err) {
+			if _, err := os.Stat(absPath); os.IsNotExist(err) {
 				// Try to create the directory
-				if err := os.MkdirAll(request.WikiPath, 0755); err != nil {
+				if err := os.MkdirAll(absPath, 0755); err != nil {
 					http.Error(w, "Failed to create directory: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
 			}
 			
 			// Update config
-			h.config.WikiPath = request.WikiPath
+			h.config.WikiPath = absPath
 			if err := config.SaveConfig(h.config); err != nil {
 				http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
 				return
@@ -208,7 +250,12 @@ func (h *Handler) loadHandler() http.HandlerFunc {
 			return
 		}
 
-		filePath := filepath.Join(h.config.WikiPath, filepath.Clean(filename))
+		// Validate and sanitize the path
+		filePath, err := ValidatePath(h.config.WikiPath, filename)
+		if err != nil {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
+			return
+		}
 
 		// Check if the file exists
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -216,7 +263,7 @@ func (h *Handler) loadHandler() http.HandlerFunc {
 			return
 		}
 
-		content, err := ioutil.ReadFile(filePath)
+		content, err := os.ReadFile(filePath)
 		if err != nil {
 			http.Error(w, "Failed to read file", http.StatusInternalServerError)
 			return
@@ -249,7 +296,12 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 			return
 		}
 
-		filePath := filepath.Join(h.config.WikiPath, filepath.Clean(request.Filename))
+		// Validate and sanitize the path
+		filePath, err := ValidatePath(h.config.WikiPath, request.Filename)
+		if err != nil {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
+			return
+		}
 
 		// Create directory if it doesn't exist
 		dir := filepath.Dir(filePath)
@@ -258,7 +310,8 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := ioutil.WriteFile(filePath, []byte(request.Content), 0644); err != nil {
+		// Write file with secure permissions
+		if err := os.WriteFile(filePath, []byte(request.Content), 0644); err != nil {
 			http.Error(w, "Failed to write file", http.StatusInternalServerError)
 			return
 		}
@@ -306,7 +359,12 @@ func (h *Handler) deleteHandler() http.HandlerFunc {
 			return
 		}
 
-		filePath := filepath.Join(h.config.WikiPath, filepath.Clean(request.Filename))
+		// Validate and sanitize the path
+		filePath, err := ValidatePath(h.config.WikiPath, request.Filename)
+		if err != nil {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
+			return
+		}
 
 		// Check if the file exists
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {

@@ -43,6 +43,7 @@ func (c *DefaultGitClient) Init(repoPath string) error {
 		return nil // Already initialized
 	}
 
+	// Use exec.Command instead of shell execution to prevent command injection
 	cmd := exec.Command("git", "init")
 	cmd.Dir = repoPath
 	out, err := cmd.CombinedOutput()
@@ -74,8 +75,11 @@ func (c *DefaultGitClient) Commit(repoPath, message string) error {
 		return nil // Nothing to commit
 	}
 
-	// Commit changes.
-	cmd = exec.Command("git", "commit", "-m", message)
+	// Sanitize commit message to prevent command injection
+	sanitizedMessage := sanitizeGitMessage(message)
+	
+	// Commit changes using array arguments to prevent shell injection
+	cmd = exec.Command("git", "commit", "-m", sanitizedMessage)
 	cmd.Dir = repoPath
 	out, err = cmd.CombinedOutput()
 	if err != nil {
@@ -151,4 +155,22 @@ func (c *DefaultGitClient) Status(repoPath string) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// sanitizeGitMessage removes potentially dangerous characters from git commit messages
+func sanitizeGitMessage(message string) string {
+	// Remove characters that could be used for command injection
+	unsafe := []string{";", "&", "|", ">", "<", "`", "$", "(", ")", "{", "}", "[", "]", "\\", "\n", "\r"}
+	result := message
+	
+	for _, char := range unsafe {
+		result = strings.ReplaceAll(result, char, "")
+	}
+	
+	// Limit length to prevent buffer overflows
+	if len(result) > 100 {
+		result = result[:100]
+	}
+	
+	return result
 }
