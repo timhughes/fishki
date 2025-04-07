@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { splitVendorChunkPlugin } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
-    splitVendorChunkPlugin()
+    react()
   ],
   server: {
     proxy: {
@@ -21,24 +19,26 @@ export default defineConfig({
     chunkSizeWarningLimit: 800, // Increase the warning limit to 800kb
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Split React and related libraries
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router-dom')) {
+            return 'react-vendor';
+          }
+          
           // Split Material UI
-          'mui-vendor': [
-            '@mui/material',
-            '@mui/icons-material',
-            '@emotion/react',
-            '@emotion/styled'
-          ],
+          if (id.includes('node_modules/@mui') || 
+              id.includes('node_modules/@emotion')) {
+            return 'mui-vendor';
+          }
+          
           // Split markdown related packages
-          'markdown-vendor': [
-            'react-markdown',
-            'rehype-highlight',
-            'rehype-raw',
-            'rehype-sanitize',
-            'remark-gfm'
-          ]
+          if (id.includes('node_modules/react-markdown') || 
+              id.includes('node_modules/rehype') || 
+              id.includes('node_modules/remark')) {
+            return 'markdown-vendor';
+          }
         }
       }
     }
