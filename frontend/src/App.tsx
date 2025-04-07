@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Box, AppBar, Toolbar, Typography, IconButton, CircularProgress, Alert } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { PageBrowser } from './components/PageBrowser';
-import { MarkdownViewer } from './components/MarkdownViewer';
-import { MarkdownEditor } from './components/MarkdownEditor';
-import { CreatePage } from './components/CreatePage';
 import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
 import { SetupWizard } from './components/SetupWizard';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
+
+// Lazy load components to reduce initial bundle size
+const MarkdownViewer = lazy(() => import('./components/MarkdownViewer').then(module => ({ 
+  default: module.MarkdownViewer 
+})));
+const MarkdownEditor = lazy(() => import('./components/MarkdownEditor').then(module => ({ 
+  default: module.MarkdownEditor 
+})));
+const CreatePage = lazy(() => import('./components/CreatePage').then(module => ({ 
+  default: module.CreatePage 
+})));
 
 const theme = createTheme({
   palette: {
@@ -103,16 +111,22 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
   
   if (!path || pageDeleted || (isIndexPath && isFolder)) {
     // For deleted pages, non-existent paths, or folder index pages that don't exist
-    return <CreatePage path={path || ''} onCreateClick={handleCreate} />;
+    return (
+      <Suspense fallback={<CircularProgress />}>
+        <CreatePage path={path || ''} onCreateClick={handleCreate} />
+      </Suspense>
+    );
   }
 
   return (
-    <MarkdownViewer
-      filePath={addMdExtension(path)}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onNotFound={() => <CreatePage path={path} onCreateClick={handleCreate} />}
-    />
+    <Suspense fallback={<CircularProgress />}>
+      <MarkdownViewer
+        filePath={addMdExtension(path)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onNotFound={() => <CreatePage path={path} onCreateClick={handleCreate} />}
+      />
+    </Suspense>
   );
 };
 
@@ -177,12 +191,14 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
   }
 
   return (
-    <MarkdownEditor
-      filePath={addMdExtension(path || '')}
-      initialContent={initialContent}
-      onSave={handleSave}
-      onCancel={handleCancel}
-    />
+    <Suspense fallback={<CircularProgress />}>
+      <MarkdownEditor
+        filePath={addMdExtension(path || '')}
+        initialContent={initialContent}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+    </Suspense>
   );
 };
 
@@ -328,11 +344,17 @@ function App() {
               )}
             </Box>
           ) : (
-            <Routes>
-              <Route path="/page/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
-              <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
-              <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
-            </Routes>
+            <Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            }>
+              <Routes>
+                <Route path="/page/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
+                <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
+                <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
+              </Routes>
+            </Suspense>
           )}
         </Box>
 
