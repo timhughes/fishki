@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Paper, Button, CircularProgress, Alert, Typography } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, DriveFileRenameOutline as RenameIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, DriveFileMove as MoveIcon } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -9,7 +9,7 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { api } from '../api/client';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { RenameDialog } from './RenameDialog';
+import { MoveDialog } from './MoveDialog';
 import { useNavigate } from 'react-router-dom';
 
 interface MarkdownViewerProps {
@@ -39,10 +39,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const [deleteError, setDeleteError] = React.useState<string>();
   const [isDeleted, setIsDeleted] = React.useState(false);
   
-  // Rename dialog state
-  const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
-  const [renaming, setRenaming] = React.useState(false);
-  const [renameError, setRenameError] = React.useState<string>();
+  // Move dialog state
+  const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
+  const [moving, setMoving] = React.useState(false);
+  const [moveError, setMoveError] = React.useState<string>();
 
   React.useEffect(() => {
     const loadContent = async () => {
@@ -96,26 +96,26 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     setDeleteError(undefined);
   };
   
-  // Rename handlers
-  const handleRenameClick = () => {
-    setRenameDialogOpen(true);
-    setRenameError(undefined);
+  // Move handlers
+  const handleMoveClick = () => {
+    setMoveDialogOpen(true);
+    setMoveError(undefined);
   };
   
-  const handleRenameConfirm = async (newPath: string) => {
+  const handleMoveConfirm = async (newPath: string) => {
     try {
-      setRenaming(true);
-      setRenameError(undefined);
+      setMoving(true);
+      setMoveError(undefined);
       
       // Don't do anything if the paths are the same
       if (newPath === filePath) {
-        setRenameDialogOpen(false);
-        setRenaming(false);
+        setMoveDialogOpen(false);
+        setMoving(false);
         return;
       }
       
       await api.rename(filePath, newPath);
-      setRenameDialogOpen(false);
+      setMoveDialogOpen(false);
       
       // Call the onRename callback if provided
       if (onRename) {
@@ -126,14 +126,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const newUrl = newPath.replace(/\.md$/, '');
       navigate(`/page/${newUrl}`);
     } catch (err) {
-      setRenameError(err instanceof Error ? err.message : 'Failed to rename page');
-      setRenaming(false);
+      setMoveError(err instanceof Error ? err.message : 'Failed to move page');
+      setMoving(false);
     }
   };
   
-  const handleRenameCancel = () => {
-    setRenameDialogOpen(false);
-    setRenameError(undefined);
+  const handleMoveCancel = () => {
+    setMoveDialogOpen(false);
+    setMoveError(undefined);
   };
 
   if (!filePath) {
@@ -201,11 +201,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             <Button
               variant="outlined"
               color="primary"
-              onClick={handleRenameClick}
-              startIcon={<RenameIcon />}
+              onClick={handleMoveClick}
+              startIcon={<MoveIcon />}
               size="small"
             >
-              Rename
+              Move
             </Button>
             <Button
               variant="contained"
@@ -304,13 +304,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         error={deleteError}
       />
       
-      <RenameDialog
-        open={renameDialogOpen}
+      <MoveDialog
+        open={moveDialogOpen}
         currentPath={filePath}
-        onConfirm={handleRenameConfirm}
-        onCancel={handleRenameCancel}
-        renaming={renaming}
-        error={renameError}
+        onConfirm={handleMoveConfirm}
+        onCancel={handleMoveCancel}
+        moving={moving}
+        error={moveError}
       />
     </>
   );

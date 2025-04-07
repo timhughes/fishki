@@ -311,14 +311,26 @@ function App() {
             flexShrink: 0,
             transition: 'width 0.2s',
             overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: theme => theme.zIndex.drawer,
+            bgcolor: 'background.paper',
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}
-          <PageBrowser
-            onFileSelect={handleFileSelect}
-            selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
-            refreshTrigger={refreshTrigger}
-          />
+          <Box sx={{ 
+            height: 'calc(100vh - 64px)', 
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}>
+            <PageBrowser
+              onFileSelect={handleFileSelect}
+              selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
+              refreshTrigger={refreshTrigger}
+            />
+          </Box>
         </Box>
 
         {/* Main content */}
@@ -330,6 +342,7 @@ function App() {
             width: drawerOpen ? 'calc(100% - 300px)' : '100%',
             transition: 'width 0.2s',
             bgcolor: 'background.default',
+            marginLeft: drawerOpen ? '300px' : 0,
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}

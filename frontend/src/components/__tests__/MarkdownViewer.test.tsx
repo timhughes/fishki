@@ -24,9 +24,9 @@ jest.mock('../DeleteConfirmDialog', () => ({
   )
 }));
 
-// Mock the RenameDialog component
-jest.mock('../RenameDialog', () => ({
-  RenameDialog: ({ 
+// Mock the MoveDialog component
+jest.mock('../MoveDialog', () => ({
+  MoveDialog: ({ 
     open, 
     onConfirm, 
     onCancel 
@@ -35,13 +35,13 @@ jest.mock('../RenameDialog', () => ({
     onConfirm: (newPath: string) => void; 
     onCancel: () => void;
     currentPath?: string;
-    renaming?: boolean;
+    moving?: boolean;
     error?: string;
   }) => (
     open ? (
-      <div data-testid="rename-dialog">
-        <button onClick={() => onConfirm('new-test.md')}>Confirm Rename</button>
-        <button onClick={onCancel}>Cancel Rename</button>
+      <div data-testid="move-dialog">
+        <button onClick={() => onConfirm('new-test.md')}>Confirm Move</button>
+        <button onClick={onCancel}>Cancel Move</button>
       </div>
     ) : null
   )
@@ -204,7 +204,7 @@ describe('MarkdownViewer', () => {
     expect(mockOnDelete).toHaveBeenCalled();
   });
   
-  test('opens rename dialog when rename button is clicked', async () => {
+  test('opens move dialog when move button is clicked', async () => {
     await act(async () => {
       render(
         <MarkdownViewer 
@@ -217,16 +217,16 @@ describe('MarkdownViewer', () => {
       );
     });
     
-    // Find and click the rename button
+    // Find and click the move button
     await act(async () => {
-      fireEvent.click(screen.getByText('Rename'));
+      fireEvent.click(screen.getByText('Move'));
     });
     
-    // Check if rename dialog is shown
-    expect(screen.getByTestId('rename-dialog')).toBeInTheDocument();
+    // Check if move dialog is shown
+    expect(screen.getByTestId('move-dialog')).toBeInTheDocument();
   });
   
-  test('calls onRename and navigates when rename is confirmed', async () => {
+  test('calls onRename and navigates when move is confirmed', async () => {
     await act(async () => {
       render(
         <MarkdownViewer 
@@ -239,14 +239,14 @@ describe('MarkdownViewer', () => {
       );
     });
     
-    // Open rename dialog
+    // Open move dialog
     await act(async () => {
-      fireEvent.click(screen.getByText('Rename'));
+      fireEvent.click(screen.getByText('Move'));
     });
     
-    // Confirm rename
+    // Confirm move
     await act(async () => {
-      fireEvent.click(screen.getByText('Confirm Rename'));
+      fireEvent.click(screen.getByText('Confirm Move'));
     });
     
     // Check if rename API was called
@@ -292,14 +292,14 @@ describe('MarkdownViewer', () => {
       );
     });
     
-    // Open rename dialog
+    // Open move dialog
     await act(async () => {
-      fireEvent.click(screen.getByText('Rename'));
+      fireEvent.click(screen.getByText('Move'));
     });
     
-    // Confirm rename
+    // Confirm move
     await act(async () => {
-      fireEvent.click(screen.getByText('Confirm Rename'));
+      fireEvent.click(screen.getByText('Confirm Move'));
     });
     
     // Check if rename API was called

@@ -22,6 +22,7 @@ jest.mock('react-router-dom', () => ({
   Route: () => <div>Route</div>,
   useNavigate: () => jest.fn(),
   useLocation: () => ({ pathname: '/' }),
+  useParams: () => ({ '*': '' }),
 }));
 
 // Mock the NavigationProvider
@@ -45,7 +46,26 @@ jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
 }));
 
+// Mock lazy-loaded components
+jest.mock('../components/MarkdownViewer', () => ({
+  MarkdownViewer: () => <div>Markdown Viewer</div>
+}));
+
+jest.mock('../components/MarkdownEditor', () => ({
+  MarkdownEditor: () => <div>Markdown Editor</div>
+}));
+
+jest.mock('../components/CreatePage', () => ({
+  CreatePage: () => <div>Create Page</div>
+}));
+
 test('renders without crashing', async () => {
+  await act(async () => {
+    render(<App />);
+  });
+});
+
+test('renders with fixed sidebar', async () => {
   await act(async () => {
     render(<App />);
   });

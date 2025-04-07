@@ -142,10 +142,41 @@ export class ApiClient {
     });
   }
   
+  async fileExists(path: string): Promise<boolean> {
+    try {
+      // Sanitize the path
+      const sanitizedPath = this.sanitizePath(path);
+      
+      // Try to load the file
+      await this.load(sanitizedPath);
+      
+      // If we get here, the file exists
+      return true;
+    } catch (error) {
+      // If we get a 404, the file doesn't exist
+      if (error instanceof ApiError && error.status === 404) {
+        return false;
+      }
+      
+      // For any other error, rethrow
+      throw error;
+    }
+  }
+  
   async rename(oldPath: string, newPath: string) {
     // Sanitize both paths
     const sanitizedOldPath = this.sanitizePath(oldPath);
     const sanitizedNewPath = this.sanitizePath(newPath);
+    
+    // Check if the destination file already exists
+    const exists = await this.fileExists(sanitizedNewPath);
+    if (exists) {
+      // Remove .md extension from the error message and ensure path starts with /
+      const displayPath = newPath.replace(/\.md$/, '');
+      // Add leading slash if not present, but avoid double slashes
+      const formattedPath = displayPath.startsWith('/') ? displayPath : `/${displayPath}`;
+      throw new ApiError(409, `A page already exists at ${formattedPath}`);
+    }
     
     // First load the content from the old file
     const content = await this.load(sanitizedOldPath);

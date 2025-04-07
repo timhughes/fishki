@@ -1,5 +1,12 @@
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+
+// Configure testing library
+configure({
+  // Increase the timeout for async operations
+  asyncUtilTimeout: 5000,
+});
 
 // Mock TextEncoder and TextDecoder which are required by React Router v7
 global.TextEncoder = require('util').TextEncoder;
@@ -14,6 +21,21 @@ declare global {
     }
   }
 }
+
+// Silence React act() warnings
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (/Warning.*not wrapped in act/.test(args[0])) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
 
 // Mock the ReactMarkdown component for tests
 jest.mock('react-markdown', () => {
