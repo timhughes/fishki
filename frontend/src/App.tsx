@@ -194,7 +194,7 @@ function App() {
   const [setupWizardOpen, setSetupWizardOpen] = React.useState(false);
   const [wikiPathSet, setWikiPathSet] = React.useState(true);
   const [appLoading, setAppLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   
   // Use our navigation context
   const { 
@@ -216,7 +216,7 @@ function App() {
           setSetupWizardOpen(true);
         }
       } catch (err) {
-        setError('Failed to load configuration');
+        setErrorMessage('Failed to load configuration');
       } finally {
         setAppLoading(false);
       }
@@ -321,6 +321,11 @@ function App() {
               <Alert severity="info">
                 Please configure your wiki path to continue.
               </Alert>
+              {errorMessage && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {errorMessage}
+                </Alert>
+              )}
             </Box>
           ) : (
             <Routes>

@@ -29,3 +29,5 @@ fishki-server
 web/coverage
 bin
 frontend/.vite
+RELEASE_NOTES*
+AmazonQ.md
