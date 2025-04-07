@@ -69,9 +69,12 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
       .map((item) => {
         const cleanPath = removeMdExtension(item.path);
         const cleanSelected = removeMdExtension(selectedFile || '');
+        
+        // Special handling for the root node
+        const isRootNode = level === 0 && item.path === '';
 
         return (
-          <Box key={item.path} sx={{ ml: level * 2 }}>
+          <Box key={item.path || 'root'} sx={{ ml: level * 2 }}>
             <ListItem
               disablePadding
               sx={{
@@ -82,9 +85,12 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
               }}
             >
               <ListItemButton
-                selected={cleanSelected === cleanPath}
+                selected={!isRootNode && cleanSelected === cleanPath}
                 onClick={() => {
-                  if (item.type === 'file') {
+                  if (isRootNode) {
+                    // For root node, navigate to the root index
+                    navigate('/page/index');
+                  } else if (item.type === 'file') {
                     onFileSelect(item.path);
                   } else if (item.type === 'folder') {
                     // When clicking on a folder, navigate to its path with trailing slash
@@ -94,7 +100,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
                   }
                 }}
                 dense
-                className={`file-item ${cleanSelected === cleanPath ? 'selected' : ''}`}
+                className={`file-item ${!isRootNode && cleanSelected === cleanPath ? 'selected' : ''}`}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   {item.type === 'folder' ? (
@@ -108,7 +114,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
                   primaryTypographyProps={{
                     variant: 'body2',
                     sx: {
-                      fontWeight: cleanSelected === cleanPath ? 500 : 400,
+                      fontWeight: (!isRootNode && cleanSelected === cleanPath) ? 500 : 400,
                     },
                   }}
                 />

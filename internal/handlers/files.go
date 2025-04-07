@@ -40,9 +40,22 @@ func (h *Handler) handleFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the repository directory name to use as the root node
+	repoName := filepath.Base(h.config.WikiPath)
+	
+	// Create a root node with the repository name
+	rootNode := []FileInfo{
+		{
+			Name:     repoName,
+			Type:     "folder",
+			Path:     "",
+			Children: files,
+		},
+	}
+
 	// Create response in the standard format
 	response := map[string]interface{}{
-		"files": files,
+		"files": rootNode,
 	}
 
 	// Create a buffer for proper formatting
