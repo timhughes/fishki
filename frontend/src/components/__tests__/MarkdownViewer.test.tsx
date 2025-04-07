@@ -24,16 +24,41 @@ jest.mock('../DeleteConfirmDialog', () => ({
   )
 }));
 
+// Mock the RenameDialog component
+jest.mock('../RenameDialog', () => ({
+  RenameDialog: ({ 
+    open, 
+    onConfirm, 
+    onCancel 
+  }: { 
+    open: boolean; 
+    onConfirm: (newPath: string) => void; 
+    onCancel: () => void;
+    currentPath?: string;
+    renaming?: boolean;
+    error?: string;
+  }) => (
+    open ? (
+      <div data-testid="rename-dialog">
+        <button onClick={() => onConfirm('new-test.md')}>Confirm Rename</button>
+        <button onClick={onCancel}>Cancel Rename</button>
+      </div>
+    ) : null
+  )
+}));
+
 // Mock the API with controlled promises
 const mockLoad = jest.fn();
 const mockDelete = jest.fn();
 const mockRender = jest.fn();
+const mockRename = jest.fn();
 
 jest.mock('../../api/client', () => ({
   api: {
     load: (...args: unknown[]) => mockLoad(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
-    render: (...args: unknown[]) => mockRender(...args)
+    render: (...args: unknown[]) => mockRender(...args),
+    rename: (...args: unknown[]) => mockRename(...args)
   }
 }));
 
@@ -45,6 +70,13 @@ jest.mock('react-markdown', () => ({
   }
 }));
 
+// Mock React Router's useNavigate
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate
+}));
+
 // Mock the plugins
 jest.mock('remark-gfm', () => () => null);
 jest.mock('rehype-raw', () => () => null);
@@ -54,6 +86,7 @@ jest.mock('rehype-highlight', () => () => null);
 describe('MarkdownViewer', () => {
   const mockOnEdit = jest.fn();
   const mockOnDelete = jest.fn();
+  const mockOnRename = jest.fn();
   const mockOnNotFound = jest.fn().mockReturnValue(<div>Not Found</div>);
   
   beforeEach(() => {
@@ -63,6 +96,7 @@ describe('MarkdownViewer', () => {
     mockLoad.mockResolvedValue('# Test Content');
     mockDelete.mockResolvedValue({});
     mockRender.mockResolvedValue('<h1>Test Content</h1>');
+    mockRename.mockResolvedValue({ success: true });
   });
   
   test('loads and displays content', async () => {
@@ -78,6 +112,7 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
         />
       );
     });
@@ -105,6 +140,7 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
         />
       );
     });
@@ -126,6 +162,7 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
         />
       );
     });
@@ -147,6 +184,7 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
         />
       );
     });
@@ -166,6 +204,61 @@ describe('MarkdownViewer', () => {
     expect(mockOnDelete).toHaveBeenCalled();
   });
   
+  test('opens rename dialog when rename button is clicked', async () => {
+    await act(async () => {
+      render(
+        <MarkdownViewer 
+          filePath="test.md"
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
+        />
+      );
+    });
+    
+    // Find and click the rename button
+    await act(async () => {
+      fireEvent.click(screen.getByText('Rename'));
+    });
+    
+    // Check if rename dialog is shown
+    expect(screen.getByTestId('rename-dialog')).toBeInTheDocument();
+  });
+  
+  test('calls onRename and navigates when rename is confirmed', async () => {
+    await act(async () => {
+      render(
+        <MarkdownViewer 
+          filePath="test.md"
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
+        />
+      );
+    });
+    
+    // Open rename dialog
+    await act(async () => {
+      fireEvent.click(screen.getByText('Rename'));
+    });
+    
+    // Confirm rename
+    await act(async () => {
+      fireEvent.click(screen.getByText('Confirm Rename'));
+    });
+    
+    // Check if rename API was called
+    expect(mockRename).toHaveBeenCalledWith('test.md', 'new-test.md');
+    
+    // Check if onRename callback was called
+    expect(mockOnRename).toHaveBeenCalledWith('test.md', 'new-test.md');
+    
+    // Check if navigation occurred
+    expect(mockNavigate).toHaveBeenCalledWith('/page/new-test');
+  });
+  
   test('calls onNotFound when file is not found', async () => {
     // Mock API to return 404
     mockLoad.mockRejectedValue(new Error('404'));
@@ -177,11 +270,42 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
         />
       );
     });
     
     // Check if onNotFound was called
     expect(mockOnNotFound).toHaveBeenCalled();
+  });
+  
+  test('works without onRename prop', async () => {
+    await act(async () => {
+      render(
+        <MarkdownViewer 
+          filePath="test.md"
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onNotFound={mockOnNotFound}
+          // No onRename prop
+        />
+      );
+    });
+    
+    // Open rename dialog
+    await act(async () => {
+      fireEvent.click(screen.getByText('Rename'));
+    });
+    
+    // Confirm rename
+    await act(async () => {
+      fireEvent.click(screen.getByText('Confirm Rename'));
+    });
+    
+    // Check if rename API was called
+    expect(mockRename).toHaveBeenCalledWith('test.md', 'new-test.md');
+    
+    // Check if navigation occurred
+    expect(mockNavigate).toHaveBeenCalledWith('/page/new-test');
   });
 });

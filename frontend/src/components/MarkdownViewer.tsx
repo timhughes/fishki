@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Paper, Button, CircularProgress, Alert, Typography } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, DriveFileRenameOutline as RenameIcon } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -9,12 +9,15 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { api } from '../api/client';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { RenameDialog } from './RenameDialog';
+import { useNavigate } from 'react-router-dom';
 
 interface MarkdownViewerProps {
   filePath: string;
   onEdit: () => void;
   onDelete: () => void;
   onNotFound: () => React.ReactNode;
+  onRename?: (oldPath: string, newPath: string) => void;
 }
 
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
@@ -22,15 +25,24 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onEdit,
   onDelete,
   onNotFound,
+  onRename,
 }) => {
+  const navigate = useNavigate();
   const [content, setContent] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>();
   const [notFound, setNotFound] = React.useState(false);
+  
+  // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string>();
   const [isDeleted, setIsDeleted] = React.useState(false);
+  
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
+  const [renaming, setRenaming] = React.useState(false);
+  const [renameError, setRenameError] = React.useState<string>();
 
   React.useEffect(() => {
     const loadContent = async () => {
@@ -59,6 +71,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     loadContent();
   }, [filePath]);
 
+  // Delete handlers
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
     setDeleteError(undefined);
@@ -81,6 +94,46 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setDeleteError(undefined);
+  };
+  
+  // Rename handlers
+  const handleRenameClick = () => {
+    setRenameDialogOpen(true);
+    setRenameError(undefined);
+  };
+  
+  const handleRenameConfirm = async (newPath: string) => {
+    try {
+      setRenaming(true);
+      setRenameError(undefined);
+      
+      // Don't do anything if the paths are the same
+      if (newPath === filePath) {
+        setRenameDialogOpen(false);
+        setRenaming(false);
+        return;
+      }
+      
+      await api.rename(filePath, newPath);
+      setRenameDialogOpen(false);
+      
+      // Call the onRename callback if provided
+      if (onRename) {
+        onRename(filePath, newPath);
+      }
+      
+      // Navigate to the new page
+      const newUrl = newPath.replace(/\.md$/, '');
+      navigate(`/page/${newUrl}`);
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : 'Failed to rename page');
+      setRenaming(false);
+    }
+  };
+  
+  const handleRenameCancel = () => {
+    setRenameDialogOpen(false);
+    setRenameError(undefined);
   };
 
   if (!filePath) {
@@ -144,6 +197,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               size="small"
             >
               Delete
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleRenameClick}
+              startIcon={<RenameIcon />}
+              size="small"
+            >
+              Rename
             </Button>
             <Button
               variant="contained"
@@ -240,6 +302,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         onCancel={handleDeleteCancel}
         deleting={deleting}
         error={deleteError}
+      />
+      
+      <RenameDialog
+        open={renameDialogOpen}
+        currentPath={filePath}
+        onConfirm={handleRenameConfirm}
+        onCancel={handleRenameCancel}
+        renaming={renaming}
+        error={renameError}
       />
     </>
   );

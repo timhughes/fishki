@@ -141,6 +141,23 @@ export class ApiClient {
       body: JSON.stringify({ filename: sanitizedFilename }),
     });
   }
+  
+  async rename(oldPath: string, newPath: string) {
+    // Sanitize both paths
+    const sanitizedOldPath = this.sanitizePath(oldPath);
+    const sanitizedNewPath = this.sanitizePath(newPath);
+    
+    // First load the content from the old file
+    const content = await this.load(sanitizedOldPath);
+    
+    // Then save it to the new location
+    await this.save(sanitizedNewPath, content);
+    
+    // Finally delete the old file
+    await this.delete(sanitizedOldPath);
+    
+    return { success: true };
+  }
 
   // Helper method to sanitize paths
   private sanitizePath(path: string): string {

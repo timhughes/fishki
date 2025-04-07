@@ -96,6 +96,11 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     setPageDeleted(true); // Mark the page as deleted
     onPageDeleted();
   };
+  
+  const handleRename = () => {
+    // Trigger a refresh of the file tree after rename
+    onPageDeleted(); // Reuse the same function as delete since it refreshes the tree
+  };
 
   if (loading) {
     return (
@@ -124,6 +129,7 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
         filePath={addMdExtension(path)}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onRename={handleRename}
         onNotFound={() => <CreatePage path={path} onCreateClick={handleCreate} />}
       />
     </Suspense>
