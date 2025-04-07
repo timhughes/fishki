@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	web "github.com/timhughes/fishki/frontend"
@@ -14,11 +15,11 @@ import (
 )
 
 // setupServer initializes and configures the HTTP server
-func setupServer() (*http.ServeMux, error) {
+func setupServer() (*http.ServeMux, error, *config.Config) {
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %v", err)
+		return nil, fmt.Errorf("failed to load config: %v", err), nil
 	}
 
 	// Set up handlers
@@ -73,7 +74,7 @@ func setupServer() (*http.ServeMux, error) {
 		w.Write(content)
 	}))
 
-	return mux, nil
+	return mux, nil, cfg
 }
 
 func main() {
@@ -88,12 +89,37 @@ func main() {
 	}
 
 	// Set up server after flags are parsed
-	mux, err := setupServer()
+	mux, err, cfg := setupServer()
 	if err != nil {
 		log.Fatalf("Failed to setup server: %v", err)
 	}
 
+	// Get config file path
+	configPath, err := config.GetConfigPath()
+	if err != nil {
+		log.Printf("Warning: Could not determine config path: %v", err)
+	}
+
+	// Print startup information
 	addr := fmt.Sprintf("%s:%s", *bind, *port)
 	log.Printf("Server starting on http://%s (mode: %s)", addr, os.Getenv("NODE_ENV"))
+	log.Printf("Configuration file: %s", configPath)
+	
+	if cfg.WikiPath == "" {
+		log.Printf("Wiki path: Not configured yet. Please set up the wiki through the web interface.")
+	} else {
+		absPath, err := filepath.Abs(cfg.WikiPath)
+		if err != nil {
+			log.Printf("Wiki path: %s", cfg.WikiPath)
+		} else {
+			log.Printf("Wiki path: %s", absPath)
+		}
+		
+		// Check if the wiki path exists
+		if _, err := os.Stat(cfg.WikiPath); os.IsNotExist(err) {
+			log.Printf("Warning: Wiki path does not exist. It will be created when needed.")
+		}
+	}
+	
 	log.Fatal(http.ListenAndServe(addr, mux))
 }

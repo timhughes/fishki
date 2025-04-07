@@ -6,20 +6,26 @@ import (
 	"time"
 )
 
-// AccessLoggerMiddleware logs HTTP requests
+// AccessLoggerMiddleware logs HTTP requests with status code and URL parameters
 func AccessLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Create a response wrapper to capture the status code
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		// Call the next handler
 		next.ServeHTTP(wrapper, r)
-		
-		// Log the request
+
+		// Format URL with query parameters if present
+		urlString := r.URL.Path
+		if r.URL.RawQuery != "" {
+			urlString += "?" + r.URL.RawQuery
+		}
+
+		// Log the request with status code and URL parameters
 		duration := time.Since(start)
-		log.Printf("%s %s %s %d %s", r.RemoteAddr, r.Method, r.URL.Path, wrapper.statusCode, duration)
+		log.Printf("%s %s %s [%d] %s", r.RemoteAddr, r.Method, urlString, wrapper.statusCode, duration)
 	})
 }
 

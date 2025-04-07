@@ -75,3 +75,8 @@ func getConfigPath() (string, error) {
 	}
 	return filepath.Join(configDir, "config.json"), nil
 }
+
+// GetConfigPath returns the path to the config file (exported version)
+func GetConfigPath() (string, error) {
+	return getConfigPath()
+}
