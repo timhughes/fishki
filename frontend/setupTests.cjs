@@ -1,16 +1,17 @@
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock TextEncoder and TextDecoder which are required by React Router v7
-global.TextEncoder = require('util').TextEncoder;
-global.TextDecoder = require('util').TextDecoder;
+const util = require('util');
+global.TextEncoder = util.TextEncoder;
+global.TextDecoder = util.TextDecoder;
 
 // Mock the ReactMarkdown component for tests
 jest.mock('react-markdown', () => {
   const React = require('react');
   return {
     __esModule: true,
-    default: ({ children }: { children: string }) => {
+    default: ({ children }) => {
       return React.createElement('div', { 'data-testid': 'markdown-content' }, children);
     }
   };
@@ -39,6 +40,7 @@ jest.mock('rehype-highlight', () => ({
 
 // Mock React Router components
 jest.mock('react-router-dom', () => {
+  // Use require instead of import for compatibility
   const originalModule = jest.requireActual('react-router-dom');
   
   return {

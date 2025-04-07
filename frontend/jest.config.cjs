@@ -1,12 +1,15 @@
-export default {
+module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  setupFilesAfterEnv: ['<rootDir>/setupTests.cjs'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+      useESM: true,
+    }],
     '^.+\\.(js|jsx|mjs)$': 'babel-jest',
   },
   transformIgnorePatterns: [
