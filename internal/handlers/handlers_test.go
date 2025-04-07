@@ -31,6 +31,78 @@ func setupUnitTestHandler(t *testing.T) (*Handler, func()) {
 	return handler, cleanup
 }
 
+func TestHandleFiles(t *testing.T) {
+	handler, cleanup := setupUnitTestHandler(t)
+	defer cleanup()
+
+	// Create test files
+	testDir := filepath.Join(handler.config.WikiPath, "testdir")
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+	
+	testFile := filepath.Join(handler.config.WikiPath, "test.md")
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Test the handler
+	req := httptest.NewRequest("GET", "/api/files", nil)
+	rr := httptest.NewRecorder()
+
+	handler.handleFiles(rr, req)
+
+	// Check status code
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status %v, got %v", http.StatusOK, rr.Code)
+	}
+
+	// Parse response
+	var response map[string]interface{}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Failed to parse response: %v", err)
+	}
+
+	// Check that files array exists
+	files, ok := response["files"].([]interface{})
+	if !ok {
+		t.Fatalf("Expected files array in response, got %T", response["files"])
+	}
+
+	// Check that there's exactly one root node
+	if len(files) != 1 {
+		t.Fatalf("Expected 1 root node, got %d", len(files))
+	}
+
+	// Check root node properties
+	rootNode, ok := files[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected root node to be an object, got %T", files[0])
+	}
+
+	// Check that root node has the repository name
+	repoName := filepath.Base(handler.config.WikiPath)
+	if rootNode["name"] != repoName {
+		t.Errorf("Expected root node name to be %q, got %q", repoName, rootNode["name"])
+	}
+
+	// Check that root node has empty path
+	if rootNode["path"] != "" {
+		t.Errorf("Expected root node path to be empty, got %q", rootNode["path"])
+	}
+
+	// Check that root node has children
+	children, ok := rootNode["children"].([]interface{})
+	if !ok {
+		t.Fatalf("Expected root node to have children, got %T", rootNode["children"])
+	}
+
+	// Check that children contain the test files
+	if len(children) < 1 {
+		t.Errorf("Expected at least one child in root node, got %d", len(children))
+	}
+}
+
 func TestInitHandler(t *testing.T) {
 	handler, cleanup := setupUnitTestHandler(t)
 	defer cleanup()
