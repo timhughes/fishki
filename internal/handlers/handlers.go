@@ -42,6 +42,7 @@ func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	mux.Handle("/api/init", AccessLoggerMiddleware(http.HandlerFunc(h.initHandler())))
 	mux.Handle("/api/pull", AccessLoggerMiddleware(http.HandlerFunc(h.pullHandler())))
 	mux.Handle("/api/push", AccessLoggerMiddleware(http.HandlerFunc(h.pushHandler())))
+	mux.Handle("/api/config", AccessLoggerMiddleware(http.HandlerFunc(h.configHandler())))
 }
 
 func (h *Handler) initHandler() http.HandlerFunc {
@@ -75,7 +76,64 @@ func (h *Handler) initHandler() http.HandlerFunc {
 			return
 		}
 
+		// Update the config with the new wiki path
+		h.config.WikiPath = request.Path
+		if err := config.SaveConfig(h.config); err != nil {
+			http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *Handler) configHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			// Return current config
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"wikiPath": h.config.WikiPath,
+			})
+			
+		case http.MethodPost:
+			// Update config
+			var request struct {
+				WikiPath string `json:"wikiPath"`
+			}
+			
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "Invalid request body", http.StatusBadRequest)
+				return
+			}
+			
+			if request.WikiPath == "" {
+				http.Error(w, "Wiki path is required", http.StatusBadRequest)
+				return
+			}
+			
+			// Validate that the path exists
+			if _, err := os.Stat(request.WikiPath); os.IsNotExist(err) {
+				// Try to create the directory
+				if err := os.MkdirAll(request.WikiPath, 0755); err != nil {
+					http.Error(w, "Failed to create directory: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+			
+			// Update config
+			h.config.WikiPath = request.WikiPath
+			if err := config.SaveConfig(h.config); err != nil {
+				http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			
+			w.WriteHeader(http.StatusOK)
+			
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	}
 }
 

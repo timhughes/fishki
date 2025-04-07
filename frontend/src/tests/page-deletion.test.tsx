@@ -7,8 +7,10 @@ jest.mock('../api/client', () => ({
     load: jest.fn().mockResolvedValue('# Test Content'),
     delete: jest.fn().mockResolvedValue({}),
     getFiles: jest.fn().mockResolvedValue([
-      { path: 'page.md', type: 'file', name: 'page.md' }
-    ])
+      { path: 'folder/', type: 'directory', name: 'folder' },
+      { path: 'folder/page.md', type: 'file', name: 'page.md' }
+    ]),
+    getConfig: jest.fn().mockResolvedValue({ wikiPath: '/test/wiki/path' })
   }
 }));
 
@@ -37,6 +39,11 @@ jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
 }));
 
+// Mock the SetupWizard component
+jest.mock('../components/SetupWizard', () => ({
+  SetupWizard: () => <div data-testid="setup-wizard">Setup Wizard</div>
+}));
+
 // Mock the ViewPage component
 const ViewPage = () => {
   return (
@@ -47,11 +54,11 @@ const ViewPage = () => {
 };
 
 describe('Page Deletion', () => {
-  test('handles page deletion correctly', () => {
+  test('renders page deletion correctly', () => {
     render(
-      <MemoryRouter initialEntries={['/page.md']}>
+      <MemoryRouter initialEntries={['/page/test']}>
         <Routes>
-          <Route path="/:path" element={<ViewPage />} />
+          <Route path="/page/:path/*" element={<ViewPage />} />
         </Routes>
       </MemoryRouter>
     );

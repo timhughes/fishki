@@ -2,15 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 // Mock the API
-const mockGetFiles = jest.fn().mockResolvedValue([
-  { path: 'folder/', type: 'directory', name: 'folder' },
-  { path: 'folder/page.md', type: 'file', name: 'page.md' }
-]);
-
 jest.mock('../api/client', () => ({
   api: {
     load: jest.fn().mockResolvedValue('# Test Content'),
-    getFiles: () => mockGetFiles()
+    getFiles: jest.fn().mockResolvedValue([
+      { path: 'folder/', type: 'directory', name: 'folder' },
+      { path: 'folder/page.md', type: 'file', name: 'page.md' }
+    ]),
+    getConfig: jest.fn().mockResolvedValue({ wikiPath: '/test/wiki/path' })
   }
 }));
 
@@ -39,11 +38,13 @@ jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
 }));
 
+// Mock the SetupWizard component
+jest.mock('../components/SetupWizard', () => ({
+  SetupWizard: () => <div data-testid="setup-wizard">Setup Wizard</div>
+}));
+
 // Mock the ViewPage component
 const ViewPage = () => {
-  // Call the mocked API function to ensure it's called
-  mockGetFiles();
-  
   return (
     <div>
       <div data-testid="view-page">View Page</div>
@@ -52,9 +53,9 @@ const ViewPage = () => {
 };
 
 describe('Folder Navigation', () => {
-  test('handles folder navigation correctly', () => {
+  test('renders folder view correctly', () => {
     render(
-      <MemoryRouter initialEntries={['/folder/']}>
+      <MemoryRouter initialEntries={['/folder']}>
         <Routes>
           <Route path="/:path/*" element={<ViewPage />} />
         </Routes>
@@ -62,6 +63,5 @@ describe('Folder Navigation', () => {
     );
 
     expect(screen.getByTestId('view-page')).toBeInTheDocument();
-    expect(mockGetFiles).toHaveBeenCalled();
   });
 });

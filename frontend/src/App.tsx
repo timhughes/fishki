@@ -9,6 +9,7 @@ import { MarkdownEditor } from './components/MarkdownEditor';
 import { CreatePage } from './components/CreatePage';
 import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
+import { SetupWizard } from './components/SetupWizard';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
@@ -190,6 +191,10 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const [setupWizardOpen, setSetupWizardOpen] = React.useState(false);
+  const [wikiPathSet, setWikiPathSet] = React.useState(true);
+  const [appLoading, setAppLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   
   // Use our navigation context
   const { 
@@ -200,6 +205,31 @@ function App() {
     cancelNavigation,
     setNavigationCallback
   } = useNavigation();
+
+  React.useEffect(() => {
+    // Check if wiki path is set
+    const checkWikiPath = async () => {
+      try {
+        const config = await api.getConfig();
+        if (!config.wikiPath) {
+          setWikiPathSet(false);
+          setSetupWizardOpen(true);
+        }
+      } catch (err) {
+        setError('Failed to load configuration');
+      } finally {
+        setAppLoading(false);
+      }
+    };
+
+    checkWikiPath();
+  }, []);
+
+  const handleSetupComplete = () => {
+    setSetupWizardOpen(false);
+    setWikiPathSet(true);
+    window.location.reload(); // Reload to refresh the file tree
+  };
 
   // Handle file selection from the tree view
   const handleFileSelect = (path: string) => {
@@ -281,12 +311,31 @@ function App() {
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}
-          <Routes>
-            <Route path="/page/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
-            <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
-            <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
-          </Routes>
+          
+          {appLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <CircularProgress />
+            </Box>
+          ) : !wikiPathSet ? (
+            <Box sx={{ p: 3 }}>
+              <Alert severity="info">
+                Please configure your wiki path to continue.
+              </Alert>
+            </Box>
+          ) : (
+            <Routes>
+              <Route path="/page/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
+              <Route path="/edit/*" element={<EditPage onPageCreated={handlePageCreated} />} />
+              <Route path="/*" element={<ViewPage onPageDeleted={handlePageDeleted} />} />
+            </Routes>
+          )}
         </Box>
+
+        {/* Setup Wizard */}
+        <SetupWizard 
+          open={setupWizardOpen} 
+          onComplete={handleSetupComplete} 
+        />
 
         {/* Navigation components */}
         <NavigationBlocker />

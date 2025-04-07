@@ -31,6 +31,21 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({ onFileSelect, selected
   const loadFiles = React.useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Check if wiki path is set first
+      try {
+        const config = await api.getConfig();
+        if (!config.wikiPath) {
+          setError('Wiki path not set');
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        setError('Failed to load configuration');
+        setLoading(false);
+        return;
+      }
+      
       const fileTree = await api.getFiles();
       setFiles(fileTree);
       setError(undefined);

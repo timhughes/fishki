@@ -8,7 +8,10 @@ jest.mock('../api/client', () => ({
     load: jest.fn().mockResolvedValue(''),
     save: jest.fn().mockResolvedValue({}),
     delete: jest.fn().mockResolvedValue({}),
-    render: jest.fn().mockResolvedValue('')
+    render: jest.fn().mockResolvedValue(''),
+    getConfig: jest.fn().mockResolvedValue({ wikiPath: '/test/wiki/path' }),
+    setConfig: jest.fn().mockResolvedValue({}),
+    init: jest.fn().mockResolvedValue({})
   }
 }));
 

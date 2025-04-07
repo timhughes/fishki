@@ -8,7 +8,8 @@ jest.mock('../api/client', () => ({
     getFiles: jest.fn().mockResolvedValue([
       { path: 'folder/', type: 'directory', name: 'folder' },
       { path: 'folder/page.md', type: 'file', name: 'page.md' }
-    ])
+    ]),
+    getConfig: jest.fn().mockResolvedValue({ wikiPath: '/test/wiki/path' })
   }
 }));
 
@@ -35,6 +36,11 @@ jest.mock('../components/MarkdownViewer', () => ({
 // Mock the PageBrowser component
 jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
+}));
+
+// Mock the SetupWizard component
+jest.mock('../components/SetupWizard', () => ({
+  SetupWizard: () => <div data-testid="setup-wizard">Setup Wizard</div>
 }));
 
 // Mock the ViewPage component

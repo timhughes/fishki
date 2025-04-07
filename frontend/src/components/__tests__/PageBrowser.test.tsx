@@ -1,16 +1,21 @@
 import { render, screen, act } from '@testing-library/react';
 import { PageBrowser } from '../PageBrowser';
 
-// Create a controlled promise for API mocking
+// Create controlled promises for API mocking
 let resolveGetFiles: (value: any) => void;
+let resolveGetConfig: (value: any) => void;
 const mockGetFilesPromise = new Promise(resolve => {
   resolveGetFiles = resolve;
 });
+const mockGetConfigPromise = new Promise(resolve => {
+  resolveGetConfig = resolve;
+});
 
-// Mock the API with a controlled promise
+// Mock the API with controlled promises
 jest.mock('../../api/client', () => ({
   api: {
-    getFiles: jest.fn().mockImplementation(() => mockGetFilesPromise)
+    getFiles: jest.fn().mockImplementation(() => mockGetFilesPromise),
+    getConfig: jest.fn().mockImplementation(() => mockGetConfigPromise)
   }
 }));
 
@@ -26,24 +31,25 @@ describe('PageBrowser', () => {
     jest.clearAllMocks();
   });
   
-  test('renders files after loading', async () => {
+  test('renders files after loading with valid wiki path', async () => {
     // Render component
-    let renderResult: ReturnType<typeof render>;
-    
-    await act(async () => {
-      renderResult = render(
-        <PageBrowser 
-          onFileSelect={mockOnFileSelect}
-          selectedFile=""
-          refreshTrigger={0}
-        />
-      );
-    });
+    render(
+      <PageBrowser 
+        onFileSelect={mockOnFileSelect}
+        selectedFile=""
+        refreshTrigger={0}
+      />
+    );
     
     // Initially, it should show loading state
-    expect(renderResult!.container.textContent).toContain('Loading files');
+    expect(screen.getByText(/Loading/)).toBeInTheDocument();
     
-    // Resolve the API call with data
+    // Resolve the config API call first
+    await act(async () => {
+      resolveGetConfig({ wikiPath: '/test/wiki/path' });
+    });
+    
+    // Then resolve the files API call
     await act(async () => {
       resolveGetFiles([
         { path: 'folder/', type: 'directory', name: 'folder' },
@@ -56,5 +62,29 @@ describe('PageBrowser', () => {
     expect(screen.getByText('folder')).toBeInTheDocument();
     expect(screen.getByText('page1')).toBeInTheDocument();
     expect(screen.getByText('page2')).toBeInTheDocument();
+  });
+  
+  test('shows error when wiki path is not set', async () => {
+    // Mock implementation for this specific test
+    const { getConfig } = require('../../api/client').api;
+    getConfig.mockImplementationOnce(() => Promise.resolve({ wikiPath: '' }));
+    
+    // Render component
+    render(
+      <PageBrowser 
+        onFileSelect={mockOnFileSelect}
+        selectedFile=""
+        refreshTrigger={0}
+      />
+    );
+    
+    // Wait for the component to update
+    await act(async () => {
+      // Just wait for any promises to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    
+    // Should show error about wiki path not set
+    expect(screen.getByText('Wiki path not set')).toBeInTheDocument();
   });
 });

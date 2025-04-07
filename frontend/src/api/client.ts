@@ -63,6 +63,17 @@ export class ApiClient {
     });
   }
 
+  async getConfig() {
+    return this.request('/api/config');
+  }
+
+  async setConfig(wikiPath: string) {
+    return this.request('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({ wikiPath }),
+    });
+  }
+
   async save(filename: string, content: string) {
     return this.request('/api/save', {
       method: 'POST',
