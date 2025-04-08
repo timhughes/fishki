@@ -1,16 +1,10 @@
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MoveDialog } from '../components/MoveDialog';
-import { api } from '../api/client';
+import * as useFoldersModule from '../hooks/useFolders';
 
-// Mock the API client
-jest.mock('../api/client', () => ({
-  api: {
-    getFiles: jest.fn().mockResolvedValue([
-      { name: 'folder1', isDir: true, type: 'folder' },
-      { name: 'folder2', isDir: true, type: 'folder' },
-      { name: 'test.md', isDir: false, type: 'file' }
-    ])
-  }
+// Mock the useFolders hook
+jest.mock('../hooks/useFolders', () => ({
+  useFolders: jest.fn()
 }));
 
 describe('MoveDialog', () => {
@@ -19,37 +13,72 @@ describe('MoveDialog', () => {
   
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Default mock implementation for useFolders
+    (useFoldersModule.useFolders as jest.Mock).mockReturnValue({
+      folders: ['folder1', 'folder2', 'folder3'],
+      loading: false,
+      error: ''
+    });
   });
   
-  test('renders correctly with proper path formatting', async () => {
-    // Mock the API call to resolve immediately
-    (api.getFiles as jest.Mock).mockResolvedValue([
-      { name: 'folder1', isDir: true, type: 'folder' },
-      { name: 'folder2', isDir: true, type: 'folder' },
-      { name: 'test.md', isDir: false, type: 'file' }
-    ]);
-    
-    await act(async () => {
-      render(
-        <MoveDialog
-          open={true}
-          currentPath="test.md"
-          onConfirm={mockOnMoved}
-          onCancel={mockOnClose}
-        />
-      );
-      
-      // Wait for promises to resolve
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
+  test('renders correctly with proper path formatting', () => {
+    render(
+      <MoveDialog
+        open={true}
+        currentPath="test.md"
+        onConfirm={mockOnMoved}
+        onCancel={mockOnClose}
+      />
+    );
     
     // Check if the dialog renders with the correct title
-    await waitFor(() => {
-      expect(screen.getByText('Move Page')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Move Page')).toBeInTheDocument();
     
     // Check if the input field has the correct helper text
     const helperText = screen.getByText('Enter the new name for this page');
     expect(helperText).toBeInTheDocument();
-  }, 10000); // Increase timeout to 10 seconds
+  });
+  
+  test('calls onConfirm when Move button is clicked', () => {
+    // Mock implementation that resolves immediately
+    mockOnMoved.mockImplementation(() => Promise.resolve());
+    
+    render(
+      <MoveDialog
+        open={true}
+        currentPath="test.md"
+        onConfirm={mockOnMoved}
+        onCancel={mockOnClose}
+      />
+    );
+    
+    // Change the name to trigger a different path
+    fireEvent.change(screen.getByLabelText('New Page Name'), {
+      target: { value: 'new-test' }
+    });
+    
+    // Click the Move button
+    fireEvent.click(screen.getByRole('button', { name: 'Move' }));
+    
+    // Check if onConfirm was called with the correct path
+    expect(mockOnMoved).toHaveBeenCalledWith('new-test.md');
+  });
+  
+  test('calls onCancel when Cancel button is clicked', () => {
+    render(
+      <MoveDialog
+        open={true}
+        currentPath="test.md"
+        onConfirm={mockOnMoved}
+        onCancel={mockOnClose}
+      />
+    );
+    
+    // Click the Cancel button
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    
+    // Check if onCancel was called
+    expect(mockOnClose).toHaveBeenCalled();
+  });
 });

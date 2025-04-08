@@ -18,8 +18,7 @@ import {
   Divider,
 } from '@mui/material';
 import { DriveFileMove as MoveIcon } from '@mui/icons-material';
-import { api } from '../api/client';
-import { FileInfo } from '../types/api';
+import { useFolders } from '../hooks/useFolders';
 
 interface MoveDialogProps {
   open: boolean;
@@ -49,56 +48,9 @@ export const MoveDialog: React.FC<MoveDialogProps> = ({
   const [newName, setNewName] = useState(displayName);
   const [targetDirectory, setTargetDirectory] = useState(currentDirectory);
   const [validationError, setValidationError] = useState('');
-  const [folders, setFolders] = useState<string[]>([]);
-  const [loadingFolders, setLoadingFolders] = useState(false);
-  const [folderError, setFolderError] = useState('');
-
-  // Load available folders when dialog opens
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchFolders = async () => {
-      if (open) {
-        try {
-          if (isMounted) setLoadingFolders(true);
-          if (isMounted) setFolderError('');
-          
-          const fileTree = await api.getFiles();
-          const folderPaths = extractFolderPaths(fileTree);
-          
-          // Add root directory
-          folderPaths.unshift('');
-          
-          // Only update state if component is still mounted
-          if (isMounted) {
-            // Log the folders for debugging (only in development)
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Available folders:', folderPaths);
-            }
-            
-            setFolders(folderPaths);
-          }
-        } catch (err) {
-          if (isMounted) {
-            setFolderError('Failed to load folders');
-            console.error('Failed to load folders:', err);
-          }
-        } finally {
-          if (isMounted) {
-            setLoadingFolders(false);
-          }
-        }
-      }
-    };
-    
-    // Use a microtask to allow tests to properly wrap state updates in act()
-    Promise.resolve().then(fetchFolders);
-    
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
+  
+  // Use custom hook to fetch folders
+  const { folders, loading: loadingFolders, error: folderError } = useFolders(open);
 
   // Reset the form when the dialog opens
   useEffect(() => {
@@ -108,47 +60,6 @@ export const MoveDialog: React.FC<MoveDialogProps> = ({
       setValidationError('');
     }
   }, [open, displayName, currentDirectory]);
-
-  // Recursive function to extract folder paths from file tree
-  const extractFolderPaths = (items: FileInfo[]): string[] => {
-    let paths: string[] = [];
-    
-    // Check if we have a repository folder at the root
-    if (items.length > 0 && items[0].type === 'folder' && items[0].children) {
-      // Process each child of the repository folder
-      for (const child of items[0].children) {
-        if (child.type === 'folder') {
-          // Add this folder
-          paths.push(child.path);
-          
-          // Process subfolders recursively
-          if (child.children) {
-            for (const subChild of child.children) {
-              if (subChild.type === 'folder') {
-                paths.push(subChild.path);
-                // Continue recursion if needed
-                addSubfolders(subChild, paths);
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    return paths;
-  };
-  
-  // Helper function to add all subfolders recursively
-  const addSubfolders = (folder: FileInfo, paths: string[]): void => {
-    if (folder.children) {
-      for (const child of folder.children) {
-        if (child.type === 'folder') {
-          paths.push(child.path);
-          addSubfolders(child, paths);
-        }
-      }
-    }
-  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

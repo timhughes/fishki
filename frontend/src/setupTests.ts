@@ -22,7 +22,8 @@ declare global {
   }
 }
 
-// Silence React act() warnings
+// Silence React act() warnings in tests
+// This is a temporary solution until all tests are properly fixed
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args: any[]) => {
