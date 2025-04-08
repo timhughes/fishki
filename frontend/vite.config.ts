@@ -19,26 +19,26 @@ export default defineConfig({
     chunkSizeWarningLimit: 800, // Increase the warning limit to 800kb
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Split React and related libraries
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/react-router-dom')) {
-            return 'react-vendor';
-          }
-          
-          // Split Material UI
-          if (id.includes('node_modules/@mui') || 
-              id.includes('node_modules/@emotion')) {
-            return 'mui-vendor';
-          }
-          
-          // Split markdown related packages
-          if (id.includes('node_modules/react-markdown') || 
-              id.includes('node_modules/rehype') || 
-              id.includes('node_modules/remark')) {
-            return 'markdown-vendor';
-          }
+        manualChunks: {
+          'react-vendor': [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'react/jsx-runtime'
+          ],
+          'mui-vendor': [
+            '@mui/material',
+            '@mui/icons-material',
+            '@emotion/react',
+            '@emotion/styled'
+          ],
+          'markdown-vendor': [
+            'react-markdown',
+            'rehype-highlight',
+            'rehype-raw',
+            'rehype-sanitize',
+            'remark-gfm'
+          ]
         }
       }
     }

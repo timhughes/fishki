@@ -32,9 +32,6 @@ func setupServer() (*http.ServeMux, error, *config.Config) {
 		if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
 			return
 		}
-		if r.URL.Path == "/" {
-			r.URL.Path = "/index.html"
-		}
 
 		// In test environment, don't try to serve files
 		if web.IsTestEnvironment() {
@@ -43,35 +40,68 @@ func setupServer() (*http.ServeMux, error, *config.Config) {
 			return
 		}
 
-		path := "dist" + r.URL.Path
-		content, err := web.WebBuild.ReadFile(path)
-		if err != nil {
-			// Serve index.html for all other routes to support client-side routing
-			content, err = web.WebBuild.ReadFile("dist/index.html")
+		// Handle static assets
+		if strings.HasPrefix(r.URL.Path, "/assets/") {
+			path := "dist" + r.URL.Path
+			content, err := web.WebBuild.ReadFile(path)
+			if err != nil {
+				http.Error(w, "Asset not found", http.StatusNotFound)
+				return
+			}
+
+			// Set content type based on file extension
+			switch {
+			case strings.HasSuffix(r.URL.Path, ".css"):
+				w.Header().Set("Content-Type", "text/css")
+			case strings.HasSuffix(r.URL.Path, ".js"):
+				w.Header().Set("Content-Type", "application/javascript")
+			case strings.HasSuffix(r.URL.Path, ".png"):
+				w.Header().Set("Content-Type", "image/png")
+			case strings.HasSuffix(r.URL.Path, ".jpg"):
+				w.Header().Set("Content-Type", "image/jpeg")
+			case strings.HasSuffix(r.URL.Path, ".svg"):
+				w.Header().Set("Content-Type", "image/svg+xml")
+			}
+
+			w.Write(content)
+			return
+		}
+
+		// Handle root path or direct requests to index.html
+		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+			content, err := web.WebBuild.ReadFile("dist/index.html")
 			if err != nil {
 				http.Error(w, "Could not read index.html", http.StatusInternalServerError)
 				return
 			}
 			w.Header().Set("Content-Type", "text/html")
+			w.Write(content)
+			return
 		}
 
-		// Set content type based on file extension
-		switch {
-		case strings.HasSuffix(r.URL.Path, ".css"):
-			w.Header().Set("Content-Type", "text/css")
-		case strings.HasSuffix(r.URL.Path, ".js"):
-			w.Header().Set("Content-Type", "application/javascript")
-		case strings.HasSuffix(r.URL.Path, ".html"):
-			w.Header().Set("Content-Type", "text/html")
-		case strings.HasSuffix(r.URL.Path, ".png"):
-			w.Header().Set("Content-Type", "image/png")
-		case strings.HasSuffix(r.URL.Path, ".jpg"):
-			w.Header().Set("Content-Type", "image/jpeg")
-		case strings.HasSuffix(r.URL.Path, ".svg"):
-			w.Header().Set("Content-Type", "image/svg+xml")
+		// Handle other static files (favicon, etc.)
+		path := "dist" + r.URL.Path
+		content, err := web.WebBuild.ReadFile(path)
+		if err == nil {
+			// Set appropriate content type
+			switch {
+			case strings.HasSuffix(r.URL.Path, ".svg"):
+				w.Header().Set("Content-Type", "image/svg+xml")
+			case strings.HasSuffix(r.URL.Path, ".ico"):
+				w.Header().Set("Content-Type", "image/x-icon")
+			}
+			w.Write(content)
+			return
 		}
 
-		w.Write(content)
+		// For all other routes, serve index.html to support client-side routing
+		indexContent, indexErr := web.WebBuild.ReadFile("dist/index.html")
+		if indexErr != nil {
+			http.Error(w, "Could not read index.html", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(indexContent)
 	}))
 
 	return mux, nil, cfg
