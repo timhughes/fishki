@@ -1,6 +1,14 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MarkdownViewer } from '../MarkdownViewer';
 
+// Mock the ThemeContext
+jest.mock('../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    mode: 'light',
+    toggleTheme: jest.fn()
+  })
+}));
+
 // Mock the DeleteConfirmDialog component
 jest.mock('../DeleteConfirmDialog', () => ({
   DeleteConfirmDialog: ({ 
@@ -287,6 +295,7 @@ describe('MarkdownViewer', () => {
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
           onNotFound={mockOnNotFound}
+          onRename={mockOnRename}
           // No onRename prop
         />
       );

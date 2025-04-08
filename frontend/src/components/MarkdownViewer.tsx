@@ -1,23 +1,27 @@
-import React from 'react';
-import { Box, Paper, Button, CircularProgress, Alert, Typography } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, DriveFileMove as MoveIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Box, Paper, Typography, Button, Alert, CircularProgress } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { DriveFileRenameOutline as MoveIcon } from '@mui/icons-material/';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github.css';
 import { api } from '../api/client';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { MoveDialog } from './MoveDialog';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
+import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/github-dark.css';
 
 interface MarkdownViewerProps {
   filePath: string;
   onEdit: () => void;
   onDelete: () => void;
+  onRename: (oldPath: string, newPath: string) => void;
   onNotFound: () => React.ReactNode;
-  onRename?: (oldPath: string, newPath: string) => void;
 }
 
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
@@ -28,21 +32,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onRename,
 }) => {
   const navigate = useNavigate();
-  const [content, setContent] = React.useState<string>('');
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string>();
-  const [notFound, setNotFound] = React.useState(false);
+  const [content, setContent] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
+  const [notFound, setNotFound] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   
-  // Delete dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleting, setDeleting] = React.useState(false);
-  const [deleteError, setDeleteError] = React.useState<string>();
-  const [isDeleted, setIsDeleted] = React.useState(false);
+  // Get theme mode
+  useTheme(); // Use theme context but don't need the mode directly
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>();
+  const [isDeleted, setIsDeleted] = useState(false);
   
   // Move dialog state
-  const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
-  const [moving, setMoving] = React.useState(false);
-  const [moveError, setMoveError] = React.useState<string>();
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState<string>();
 
   React.useEffect(() => {
     const loadContent = async () => {

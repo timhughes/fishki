@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MoveDialog } from '../MoveDialog';
 
 // Mock the API
@@ -73,14 +73,16 @@ describe('MoveDialog', () => {
   });
   
   test('renders correctly when open', async () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Check if dialog title is displayed
     expect(screen.getByText('Move Page')).toBeInTheDocument();
@@ -106,32 +108,38 @@ describe('MoveDialog', () => {
     expect(screen.getByText('Move')).toBeInTheDocument();
   });
   
-  test('does not render when closed', () => {
-    render(
-      <MoveDialog
-        open={false}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+  test('does not render when closed', async () => {
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={false}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Check that dialog is not rendered
     expect(screen.queryByText('Move Page')).not.toBeInTheDocument();
   });
   
-  test('calls onCancel when cancel button is clicked', () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+  test('calls onCancel when cancel button is clicked', async () => {
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Click cancel button
-    fireEvent.click(screen.getByText('Cancel'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
     
     // Check if onCancel was called
     expect(mockOnCancel).toHaveBeenCalled();
@@ -139,14 +147,16 @@ describe('MoveDialog', () => {
   });
   
   test('calls onConfirm with new path when move button is clicked', async () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Wait for folders to load
     await waitFor(() => {
@@ -155,10 +165,14 @@ describe('MoveDialog', () => {
     
     // Change input value
     const inputField = screen.getByLabelText('New Page Name');
-    fireEvent.change(inputField, { target: { value: 'new-path' } });
+    await act(async () => {
+      fireEvent.change(inputField, { target: { value: 'new-path' } });
+    });
     
     // Click move button
-    fireEvent.click(screen.getByText('Move'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Move'));
+    });
     
     // Check if onConfirm was called with correct path
     expect(mockOnConfirm).toHaveBeenCalledWith('test/new-path.md');
@@ -166,14 +180,16 @@ describe('MoveDialog', () => {
   });
   
   test('disables move button when input is empty', async () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Wait for folders to load
     await waitFor(() => {
@@ -182,28 +198,34 @@ describe('MoveDialog', () => {
     
     // Change input value to empty
     const inputField = screen.getByLabelText('New Page Name');
-    fireEvent.change(inputField, { target: { value: '' } });
+    await act(async () => {
+      fireEvent.change(inputField, { target: { value: '' } });
+    });
     
     // Check if move button is disabled
     const moveButton = screen.getByText('Move');
     expect(moveButton).toBeDisabled();
     
     // Try clicking the button
-    fireEvent.click(moveButton);
+    await act(async () => {
+      fireEvent.click(moveButton);
+    });
     
     // Check that onConfirm was not called
     expect(mockOnConfirm).not.toHaveBeenCalled();
   });
   
   test('disables move button when input contains slashes', async () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+        />
+      );
+    });
     
     // Wait for folders to load
     await waitFor(() => {
@@ -212,7 +234,9 @@ describe('MoveDialog', () => {
     
     // Change input value to contain slashes
     const inputField = screen.getByLabelText('New Page Name');
-    fireEvent.change(inputField, { target: { value: 'invalid/path' } });
+    await act(async () => {
+      fireEvent.change(inputField, { target: { value: 'invalid/path' } });
+    });
     
     // Check if move button is disabled
     const moveButton = screen.getByText('Move');
@@ -222,31 +246,35 @@ describe('MoveDialog', () => {
     expect(screen.getByText('Page name cannot contain slashes')).toBeInTheDocument();
   });
   
-  test('displays error message when provided', () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-        error="Failed to move page"
-      />
-    );
+  test('displays error message when provided', async () => {
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+          error="Failed to move page"
+        />
+      );
+    });
     
     // Check if error message is displayed
     expect(screen.getByText('Failed to move page')).toBeInTheDocument();
   });
   
-  test('disables buttons when moving is in progress', () => {
-    render(
-      <MoveDialog
-        open={true}
-        currentPath="test/path.md"
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-        moving={true}
-      />
-    );
+  test('disables buttons when moving is in progress', async () => {
+    await act(async () => {
+      render(
+        <MoveDialog
+          open={true}
+          currentPath="test/path.md"
+          onConfirm={mockOnConfirm}
+          onCancel={mockOnCancel}
+          moving={true}
+        />
+      );
+    });
     
     // Check if buttons are disabled
     expect(screen.getByText('Cancel')).toBeDisabled();

@@ -1,12 +1,14 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Box, AppBar, Toolbar, Typography, IconButton, CircularProgress, Alert } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { PageBrowser } from './components/PageBrowser';
 import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
 import { SetupWizard } from './components/SetupWizard';
+import { ThemeToggle } from './components/ThemeToggle';
+import { useTheme } from './contexts/ThemeContext';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
@@ -21,27 +23,6 @@ const MarkdownEditor = lazy(() => import('./components/MarkdownEditor').then(mod
 const CreatePage = lazy(() => import('./components/CreatePage').then(module => ({ 
   default: module.CreatePage 
 })));
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#2196f3',
-    },
-    secondary: {
-      main: '#f50057',
-    },
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          backgroundColor: '#f5f5f5',
-        },
-      },
-    },
-  },
-});
 
 // Route components
 const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
@@ -208,7 +189,7 @@ const EditPage = ({ onPageCreated }: { onPageCreated: () => void }) => {
   );
 };
 
-function App() {
+function AppContent() {
   const [drawerOpen, setDrawerOpen] = React.useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -227,6 +208,35 @@ function App() {
     cancelNavigation,
     setNavigationCallback
   } = useNavigation();
+
+  // Get theme mode from context
+  const { mode } = useTheme();
+
+  // Create theme based on current mode
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode: mode,
+      primary: {
+        main: '#2196f3',
+      },
+      secondary: {
+        main: '#f50057',
+      },
+      background: {
+        default: mode === 'light' ? '#f5f5f5' : '#121212',
+        paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+      },
+    },
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          body: {
+            backgroundColor: mode === 'light' ? '#f5f5f5' : '#121212',
+          },
+        },
+      },
+    },
+  }), [mode]);
 
   React.useEffect(() => {
     // Check if wiki path is set
@@ -283,7 +293,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', height: '100vh' }}>
         {/* App Bar */}
@@ -297,9 +307,10 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div">
+            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
               Fishki Wiki
             </Typography>
+            <ThemeToggle />
           </Toolbar>
         </AppBar>
 
@@ -391,8 +402,12 @@ function App() {
           onCancel={cancelNavigation}
         />
       </Box>
-    </ThemeProvider>
+    </MuiThemeProvider>
   );
+}
+
+function App() {
+  return <AppContent />;
 }
 
 export default App;

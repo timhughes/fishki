@@ -40,7 +40,10 @@ export function useFolders(shouldFetch: boolean): UseFoldersResult {
       } catch (err) {
         if (isMounted) {
           setError('Failed to load folders');
-          console.error('Failed to load folders:', err);
+          // Use a custom logger that doesn't log during tests
+          if (process.env.NODE_ENV !== 'test') {
+            console.error('Failed to load folders:', err);
+          }
         }
       } finally {
         if (isMounted) {

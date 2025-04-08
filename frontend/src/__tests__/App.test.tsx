@@ -41,6 +41,15 @@ jest.mock('../contexts/NavigationContext', () => ({
   })
 }));
 
+// Mock the ThemeProvider
+jest.mock('../contexts/ThemeContext', () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useTheme: () => ({
+    mode: 'light',
+    toggleTheme: jest.fn()
+  })
+}));
+
 // Mock PageBrowser to prevent state updates
 jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>

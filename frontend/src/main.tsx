@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from './App';
 import { NavigationProvider } from './contexts/NavigationContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
 
 // Create a data router with React Router v7
@@ -10,9 +11,11 @@ const router = createBrowserRouter([
   {
     path: "/*",
     element: (
-      <NavigationProvider>
-        <App />
-      </NavigationProvider>
+      <ThemeProvider>
+        <NavigationProvider>
+          <App />
+        </NavigationProvider>
+      </ThemeProvider>
     ),
   }
 ]);
