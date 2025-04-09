@@ -2,6 +2,8 @@
 
 A modern, Git-backed wiki system that uses Markdown for content creation and version control. Fishki combines the simplicity of Markdown with the power of Git for a robust documentation and knowledge management solution.
 
+![Fishki Screenshot v0.6.0](screenshot_v0.6.0.png "Screenshot v0.6.0")
+
 ## Features
 
 - 📝 **Markdown-based content editing** with real-time preview
