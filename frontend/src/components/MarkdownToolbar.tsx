@@ -1,25 +1,21 @@
 import React from 'react';
-import {
-  Paper,
-  IconButton,
-  Tooltip,
-  Divider,
-  ButtonGroup,
-} from '@mui/material';
-import {
-  FormatBold as BoldIcon,
-  FormatItalic as ItalicIcon,
-  FormatListBulleted as ListIcon,
-  FormatListNumbered as NumberedListIcon,
-  Code as CodeIcon,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Title as HeadingIcon,
-  FormatQuote as QuoteIcon,
-  TableChart as TableIcon,
-  HorizontalRule as HorizontalRuleIcon,
-  CheckBox as TaskListIcon,
-} from '@mui/icons-material';
+import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Divider from '@mui/material/Divider';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import BoldIcon from '@mui/icons-material/FormatBold';
+import ItalicIcon from '@mui/icons-material/FormatItalic';
+import ListIcon from '@mui/icons-material/FormatListBulleted';
+import NumberedListIcon from '@mui/icons-material/FormatListNumbered';
+import CodeIcon from '@mui/icons-material/Code';
+import LinkIcon from '@mui/icons-material/Link';
+import ImageIcon from '@mui/icons-material/Image';
+import HeadingIcon from '@mui/icons-material/Title';
+import QuoteIcon from '@mui/icons-material/FormatQuote';
+import TableIcon from '@mui/icons-material/TableChart';
+import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule';
+import TaskListIcon from '@mui/icons-material/CheckBox';
 
 interface MarkdownToolbarProps {
   onBold: () => void;

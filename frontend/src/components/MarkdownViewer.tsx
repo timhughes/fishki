@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, Button, Alert, CircularProgress } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { DriveFileRenameOutline as MoveIcon } from '@mui/icons-material/';
+import MoveIcon from '@mui/icons-material/DriveFileRenameOutline';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';

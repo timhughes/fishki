@@ -1,6 +1,9 @@
 import React from 'react';
-import { Paper, Box, Typography, Button } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import AddIcon from '@mui/icons-material/Add';
 import { removeMdExtension } from '../utils/path';
 
 interface CreatePageProps {

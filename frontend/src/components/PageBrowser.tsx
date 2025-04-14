@@ -1,6 +1,14 @@
 import React from 'react';
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
-import { Folder as FolderIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import FolderIcon from '@mui/icons-material/Folder';
+import FileIcon from '@mui/icons-material/InsertDriveFile';
 import { FileInfo } from '../types/api';
 import { api } from '../api/client';
 import { useNavigate } from 'react-router-dom';
