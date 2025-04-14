@@ -291,12 +291,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             },
           }}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeSanitize, [rehypeHighlight, { detect: true }]]}
-          >
-            {content}
-          </ReactMarkdown>
+          <Box className="markdown-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw, rehypeSanitize, [rehypeHighlight, { detect: true }]]}
+            >
+              {content}
+            </ReactMarkdown>
+          </Box>
         </Box>
       </Paper>
 

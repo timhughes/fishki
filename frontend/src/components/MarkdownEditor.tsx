@@ -217,12 +217,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               overflowY: 'auto',
             }}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
-            >
-              {content}
-            </ReactMarkdown>
+            <Box className="markdown-content">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+              >
+                {content}
+              </ReactMarkdown>
+            </Box>
           </Paper>
         </Box>
       </Box>
