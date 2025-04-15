@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useMemo } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { createTheme } from '@mui/material/styles';
@@ -16,6 +16,8 @@ import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
 import { SetupWizard } from './components/SetupWizard';
 import { ThemeToggle } from './components/ThemeToggle';
+import { NewPageDialog } from './components/NewPageDialog';
+import { ResizablePanel } from './components/ResizablePanel';
 import { useTheme } from './contexts/ThemeContext';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
@@ -46,32 +48,11 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     setPageDeleted(false);
   }, [path]);
   
-  // Check if this is a folder path and should load an index file
+  // Simple loading state management
   React.useEffect(() => {
-    const checkForIndex = async () => {
-      // Skip processing if we're already on an index page
-      if (location.pathname.endsWith('/index')) {
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      
-      // Handle paths ending with slash or explicit folder navigation
-      const isFolder = path?.endsWith('/') || location.pathname.endsWith('/');
-      
-      if (isFolder || !path) {
-        // For folder paths, navigate directly to the index path
-        const cleanPath = path?.replace(/\/$/, ''); // Remove trailing slash if present
-        navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
-        return; // Exit early, we're navigating away
-      }
-      
-      setLoading(false);
-    };
-    
-    checkForIndex();
-  }, [path, navigate, location.pathname]);
+    // Just set loading to false after component mounts
+    setLoading(false);
+  }, [path, location.pathname]);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -207,6 +188,10 @@ function AppContent() {
   const [appLoading, setAppLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   
+  // New page dialog state
+  const [newPageDialogOpen, setNewPageDialogOpen] = useState(false);
+  const [currentFolderPath, setCurrentFolderPath] = useState('');
+  
   // Use our navigation context
   const { 
     blockNavigation, 
@@ -287,6 +272,24 @@ function AppContent() {
     }
   };
   
+  // Handle creating a new page from the tree view
+  const handleCreateInFolder = (folderPath: string) => {
+    // Open the dialog to name the page
+    setCurrentFolderPath(folderPath);
+    setNewPageDialogOpen(true);
+  };
+  
+  // Handle confirmation from the new page dialog
+  const handleNewPageConfirm = (pageName: string, folderPath: string) => {
+    setNewPageDialogOpen(false);
+    
+    // Create the full path for the new page
+    const fullPath = folderPath ? `${folderPath}${pageName}` : pageName;
+    
+    // Navigate to edit mode for the new page
+    navigate(`/edit/${fullPath}`);
+  };
+  
   const handlePageCreated = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -322,35 +325,45 @@ function AppContent() {
           </Toolbar>
         </AppBar>
 
-        {/* Sidebar */}
-        <Box
-          component="nav"
-          sx={{
-            width: drawerOpen ? 300 : 0,
-            flexShrink: 0,
-            transition: 'width 0.2s',
-            overflow: 'hidden',
-            position: 'fixed',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: theme => theme.zIndex.drawer,
-            bgcolor: 'background.paper',
-          }}
-        >
-          <Toolbar /> {/* Spacer to push content below AppBar */}
-          <Box sx={{ 
-            height: 'calc(100vh - 64px)', 
-            overflowY: 'auto',
-            overflowX: 'hidden'
-          }}>
-            <PageBrowser
-              onFileSelect={handleFileSelect}
-              selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
-              refreshTrigger={refreshTrigger}
-            />
+        {/* Sidebar with resizable panel */}
+        {drawerOpen && (
+          <Box
+            component="nav"
+            sx={{
+              position: 'fixed',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              zIndex: theme => theme.zIndex.drawer,
+              bgcolor: 'background.paper',
+              height: '100%',
+            }}
+          >
+            <Toolbar /> {/* Spacer to push content below AppBar */}
+            <Box sx={{ height: 'calc(100vh - 64px)' }}>
+              <ResizablePanel
+                initialWidth={300}
+                minWidth={200}
+                maxWidth={600}
+                storageKey="fishki-sidebar-width"
+              >
+                <Box sx={{ 
+                  height: '100%', 
+                  overflowY: 'auto',
+                  overflowX: 'hidden'
+                }}>
+                  <PageBrowser
+                    onFileSelect={handleFileSelect}
+                    selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
+                    refreshTrigger={refreshTrigger}
+                    onCreatePage={handleCreateInFolder}
+                    hasUnsavedChanges={blockNavigation}
+                  />
+                </Box>
+              </ResizablePanel>
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* Main content */}
         <Box
@@ -358,10 +371,10 @@ function AppContent() {
           sx={{
             flexGrow: 1,
             p: 3,
-            width: drawerOpen ? 'calc(100% - 300px)' : '100%',
-            transition: 'width 0.2s',
+            width: '100%',
+            transition: 'margin-left 0.2s',
             bgcolor: 'background.default',
-            marginLeft: drawerOpen ? '300px' : 0,
+            marginLeft: drawerOpen ? 'var(--sidebar-width, 300px)' : 0,
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}
@@ -408,6 +421,14 @@ function AppContent() {
           open={!!pendingLocation}
           onContinue={confirmNavigation}
           onCancel={cancelNavigation}
+        />
+        
+        {/* New Page Dialog */}
+        <NewPageDialog
+          open={newPageDialogOpen}
+          folderPath={currentFolderPath}
+          onClose={() => setNewPageDialogOpen(false)}
+          onConfirm={handleNewPageConfirm}
         />
       </Box>
     </MuiThemeProvider>

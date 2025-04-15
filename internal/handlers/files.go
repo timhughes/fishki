@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,6 +35,7 @@ func (h *Handler) handleFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Getting file tree for wiki path: %s", h.config.WikiPath)
 	files, err := getFileTree(h.config.WikiPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -79,11 +81,10 @@ func (h *Handler) handleFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFileTree(root string) ([]FileInfo, error) {
-	var files []FileInfo
-	var allPaths []string
+	// Map to store all file info objects by path
 	pathMap := make(map[string]*FileInfo)
-
-	// First, collect all valid paths
+	
+	// First, collect all files and directories
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -113,17 +114,19 @@ func getFileTree(root string) ([]FileInfo, error) {
 			return nil
 		}
 
-		// Store all valid paths
+		// Store valid paths (directories and markdown files)
 		if info.IsDir() || filepath.Ext(info.Name()) == ".md" {
-			allPaths = append(allPaths, relPath)
-			pathMap[relPath] = &FileInfo{
-				Name: info.Name(),
-				Path: relPath,
-				Type: "file",
-			}
+			fileType := "file"
 			if info.IsDir() {
-				pathMap[relPath].Type = "folder"
-				pathMap[relPath].Children = make([]FileInfo, 0)
+				fileType = "folder"
+			}
+			
+			// Create FileInfo object
+			pathMap[relPath] = &FileInfo{
+				Name:     info.Name(),
+				Path:     relPath,
+				Type:     fileType,
+				Children: []FileInfo{},
 			}
 		}
 
@@ -134,53 +137,111 @@ func getFileTree(root string) ([]FileInfo, error) {
 		return nil, err
 	}
 
-	// Sort paths by depth (ensures parents are processed before children)
-	sort.Slice(allPaths, func(i, j int) bool {
-		depthI := strings.Count(allPaths[i], string(filepath.Separator))
-		depthJ := strings.Count(allPaths[j], string(filepath.Separator))
-		if depthI != depthJ {
-			return depthI < depthJ
-		}
-		return allPaths[i] < allPaths[j]
-	})
+	// Debug: Print all paths found
+	var paths []string
+	for path := range pathMap {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	log.Printf("Found %d paths", len(paths))
+	for _, p := range paths {
+		log.Printf("Path: %s", p)
+	}
 
-	// Sort paths by depth to process parents before children
-	sort.Slice(allPaths, func(i, j int) bool {
-		depthI := strings.Count(allPaths[i], string(filepath.Separator))
-		depthJ := strings.Count(allPaths[j], string(filepath.Separator))
-		if depthI != depthJ {
-			return depthI < depthJ
+	// Build the tree structure - completely different approach
+	// First, create a map of directories to their children
+	dirChildren := make(map[string][]*FileInfo)
+	
+	// Initialize the map for all directories
+	for path, info := range pathMap {
+		if info.Type == "folder" {
+			dirChildren[path] = []*FileInfo{}
 		}
-		return allPaths[i] < allPaths[j]
-	})
-
-	// First pass: Build tree structure using pointers
-	var rootFiles []*FileInfo
-	for _, path := range allPaths {
+	}
+	
+	// Add root level as a special case
+	dirChildren["."] = []*FileInfo{}
+	
+	// Populate the children for each directory
+	for path, info := range pathMap {
 		dir := filepath.Dir(path)
-
 		if dir == "." {
-			rootFiles = append(rootFiles, pathMap[path])
+			// Root level item
+			dirChildren["."] = append(dirChildren["."], info)
 		} else {
-			if parent, ok := pathMap[dir]; ok {
-				if parent.Children == nil {
-					parent.Children = make([]FileInfo, 0)
+			// Nested item
+			dirChildren[dir] = append(dirChildren[dir], info)
+		}
+	}
+	
+	// Debug the directory structure
+	log.Printf("Directory structure:")
+	for dir, children := range dirChildren {
+		childNames := make([]string, len(children))
+		for i, child := range children {
+			childNames[i] = child.Name
+		}
+		log.Printf("  %s: %v", dir, childNames)
+	}
+	
+	// Now build the actual tree by setting children for each directory
+	for dir, children := range dirChildren {
+		if dir == "." {
+			continue // Skip root, we'll handle it separately
+		}
+		
+		if dirInfo, exists := pathMap[dir]; exists {
+			// Sort children by type and name
+			sort.Slice(children, func(i, j int) bool {
+				if children[i].Type != children[j].Type {
+					return children[i].Type == "folder" // Folders first
 				}
-				parent.Children = append(parent.Children, *pathMap[path])
+				return children[i].Name < children[j].Name // Then alphabetically
+			})
+			
+			// Set the children for this directory
+			dirInfo.Children = make([]FileInfo, len(children))
+			for i, child := range children {
+				dirInfo.Children[i] = *child
 			}
 		}
 	}
-
-	// Second pass: Convert pointer slice to value slice for return
-	files = make([]FileInfo, len(rootFiles))
-	for i, file := range rootFiles {
-		files[i] = *file
+	
+	// Finally, build the root level items
+	rootItems := dirChildren["."]
+	sort.Slice(rootItems, func(i, j int) bool {
+		if rootItems[i].Type != rootItems[j].Type {
+			return rootItems[i].Type == "folder" // Folders first
+		}
+		return rootItems[i].Name < rootItems[j].Name // Then alphabetically
+	})
+	
+	rootFiles := make([]FileInfo, len(rootItems))
+	for i, item := range rootItems {
+		rootFiles[i] = *item
 	}
+	
+	// Debug: Print the tree structure
+	log.Printf("Root files count: %d", len(rootFiles))
+	for i := range rootFiles {
+		printFileTree(&rootFiles[i], 0)
+	}
+	
+	return rootFiles, nil
+}
 
-	// Sort all levels of the tree
-	sortFileTree(files)
+// Helper function to print the file tree for debugging
+func printFileTree(file *FileInfo, level int) {
+	indent := strings.Repeat("  ", level)
+	log.Printf("%s%s (%s) - Children: %d", indent, file.Path, file.Type, len(file.Children))
+	for i := range file.Children {
+		printFileTree(&file.Children[i], level+1)
+	}
+}
 
-	return files, nil
+// Helper function to create parent directories as needed and add a file to its proper place
+func createParentDirectories(path string, pathMap map[string]*FileInfo, rootFiles *[]*FileInfo, addedToParent *map[string]bool) {
+	// This function is no longer used in the new implementation
 }
 
 func sortFileTree(files []FileInfo) {
