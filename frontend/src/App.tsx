@@ -16,12 +16,12 @@ import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
 import { SetupWizard } from './components/SetupWizard';
 import { ThemeToggle } from './components/ThemeToggle';
-import { NewPageDialog } from './components/NewPageDialog';
-import { ResizablePanel } from './components/ResizablePanel';
 import { useTheme } from './contexts/ThemeContext';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
+import { ResizablePanel } from './components/ResizablePanel';
+import { NewPageDialog } from './components/NewPageDialog';
 
 // Lazy load components to reduce initial bundle size
 const MarkdownViewer = lazy(() => import('./components/MarkdownViewer').then(module => ({ 
@@ -48,11 +48,32 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
     setPageDeleted(false);
   }, [path]);
   
-  // Simple loading state management
+  // Check if this is a folder path and should load an index file
   React.useEffect(() => {
-    // Just set loading to false after component mounts
-    setLoading(false);
-  }, [path, location.pathname]);
+    const checkForIndex = async () => {
+      // Skip processing if we're already on an index page
+      if (location.pathname.endsWith('/index')) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      
+      // Handle paths ending with slash or explicit folder navigation
+      const isFolder = path?.endsWith('/') || location.pathname.endsWith('/');
+      
+      if (isFolder || !path) {
+        // For folder paths, navigate directly to the index path
+        const cleanPath = path?.replace(/\/$/, ''); // Remove trailing slash if present
+        navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
+        return; // Exit early, we're navigating away
+      }
+      
+      setLoading(false);
+    };
+    
+    checkForIndex();
+  }, [path, navigate, location.pathname]);
   
   const handleEdit = () => {
     navigate(`/edit/${path}`);
@@ -187,10 +208,8 @@ function AppContent() {
   const [wikiPathSet, setWikiPathSet] = React.useState(true);
   const [appLoading, setAppLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  
-  // New page dialog state
   const [newPageDialogOpen, setNewPageDialogOpen] = useState(false);
-  const [currentFolderPath, setCurrentFolderPath] = useState('');
+  const [newPageFolderPath, setNewPageFolderPath] = useState('');
   
   // Use our navigation context
   const { 
@@ -272,24 +291,6 @@ function AppContent() {
     }
   };
   
-  // Handle creating a new page from the tree view
-  const handleCreateInFolder = (folderPath: string) => {
-    // Open the dialog to name the page
-    setCurrentFolderPath(folderPath);
-    setNewPageDialogOpen(true);
-  };
-  
-  // Handle confirmation from the new page dialog
-  const handleNewPageConfirm = (pageName: string, folderPath: string) => {
-    setNewPageDialogOpen(false);
-    
-    // Create the full path for the new page
-    const fullPath = folderPath ? `${folderPath}${pageName}` : pageName;
-    
-    // Navigate to edit mode for the new page
-    navigate(`/edit/${fullPath}`);
-  };
-  
   const handlePageCreated = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -297,6 +298,17 @@ function AppContent() {
   const handlePageDeleted = () => {
     // Force a refresh of the page browser
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleCreatePage = (folderPath: string) => {
+    setNewPageFolderPath(folderPath);
+    setNewPageDialogOpen(true);
+  };
+
+  const handleNewPageConfirm = (pageName: string, folderPath: string) => {
+    setNewPageDialogOpen(false);
+    const fullPath = folderPath ? `${folderPath}${pageName}` : pageName;
+    navigate(`/edit/${fullPath}`);
   };
 
   const toggleDrawer = () => {
@@ -325,45 +337,46 @@ function AppContent() {
           </Toolbar>
         </AppBar>
 
-        {/* Sidebar with resizable panel */}
-        {drawerOpen && (
-          <Box
-            component="nav"
-            sx={{
-              position: 'fixed',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              zIndex: theme => theme.zIndex.drawer,
-              bgcolor: 'background.paper',
-              height: '100%',
-            }}
-          >
-            <Toolbar /> {/* Spacer to push content below AppBar */}
-            <Box sx={{ height: 'calc(100vh - 64px)' }}>
+        {/* Sidebar */}
+        <Box
+          component="nav"
+          sx={{
+            width: drawerOpen ? 'var(--sidebar-width, 300px)' : 0,
+            flexShrink: 0,
+            transition: drawerOpen ? 'none' : 'width 0.2s',
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: theme => theme.zIndex.drawer,
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Toolbar /> {/* Spacer to push content below AppBar */}
+          <Box sx={{ 
+            height: 'calc(100vh - 64px)', 
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}>
+            {drawerOpen && (
               <ResizablePanel
                 initialWidth={300}
                 minWidth={200}
-                maxWidth={600}
+                maxWidth={500}
                 storageKey="fishki-sidebar-width"
               >
-                <Box sx={{ 
-                  height: '100%', 
-                  overflowY: 'auto',
-                  overflowX: 'hidden'
-                }}>
-                  <PageBrowser
-                    onFileSelect={handleFileSelect}
-                    selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
-                    refreshTrigger={refreshTrigger}
-                    onCreatePage={handleCreateInFolder}
-                    hasUnsavedChanges={blockNavigation}
-                  />
-                </Box>
+                <PageBrowser
+                  onFileSelect={handleFileSelect}
+                  selectedFile={location.pathname.replace(/^\/(?:page|edit)\//, '')}
+                  refreshTrigger={refreshTrigger}
+                  onCreatePage={handleCreatePage}
+                  hasUnsavedChanges={blockNavigation}
+                />
               </ResizablePanel>
-            </Box>
+            )}
           </Box>
-        )}
+        </Box>
 
         {/* Main content */}
         <Box
@@ -371,8 +384,8 @@ function AppContent() {
           sx={{
             flexGrow: 1,
             p: 3,
-            width: '100%',
-            transition: 'margin-left 0.2s',
+            width: drawerOpen ? 'calc(100% - var(--sidebar-width, 300px))' : '100%',
+            transition: drawerOpen ? 'none' : 'width 0.2s',
             bgcolor: 'background.default',
             marginLeft: drawerOpen ? 'var(--sidebar-width, 300px)' : 0,
           }}
@@ -415,20 +428,20 @@ function AppContent() {
           onComplete={handleSetupComplete} 
         />
 
+        {/* New Page Dialog */}
+        <NewPageDialog
+          open={newPageDialogOpen}
+          folderPath={newPageFolderPath}
+          onClose={() => setNewPageDialogOpen(false)}
+          onConfirm={handleNewPageConfirm}
+        />
+
         {/* Navigation components */}
         <NavigationBlocker />
         <UnsavedChangesDialog
           open={!!pendingLocation}
           onContinue={confirmNavigation}
           onCancel={cancelNavigation}
-        />
-        
-        {/* New Page Dialog */}
-        <NewPageDialog
-          open={newPageDialogOpen}
-          folderPath={currentFolderPath}
-          onClose={() => setNewPageDialogOpen(false)}
-          onConfirm={handleNewPageConfirm}
         />
       </Box>
     </MuiThemeProvider>

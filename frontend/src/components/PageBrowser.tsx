@@ -145,8 +145,10 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
                     return;
                   }
                   
-                  // If there are unsaved changes, don't navigate away
+                  // If there are unsaved changes, don't navigate away directly
                   if (hasUnsavedChanges) {
+                    // Instead, let the App component handle this with the dialog
+                    onFileSelect(item.path);
                     return;
                   }
                   

@@ -39,7 +39,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [hasChanges, setHasChanges] = React.useState(false);
   
   // Use our navigation protection hooks
-  const { setBlockNavigation } = useNavigation();
+  const { setBlockNavigation, setHasUnsavedChanges } = useNavigation();
 
   // Use our markdown editor hook
   const {
@@ -65,7 +65,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const contentChanged = content !== initialContent;
     setHasChanges(contentChanged);
     setBlockNavigation(contentChanged);
-  }, [content, initialContent, setBlockNavigation]);
+    setHasUnsavedChanges(contentChanged);
+  }, [content, initialContent, setBlockNavigation, setHasUnsavedChanges]);
 
   const handleSave = async () => {
     try {
@@ -73,6 +74,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       await api.save(filePath, content);
       setHasChanges(false);
       setBlockNavigation(false);
+      setHasUnsavedChanges(false);
       onSave();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save content');
@@ -83,6 +85,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   const handleCancel = () => {
     setBlockNavigation(false);
+    setHasUnsavedChanges(false);
     onCancel();
   };
 
@@ -98,9 +101,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       // If we still have changes when unmounting, make sure we're still protected
       if (hasChanges) {
         setBlockNavigation(true);
+        setHasUnsavedChanges(true);
       }
     };
-  }, [hasChanges, setBlockNavigation]);
+  }, [hasChanges, setBlockNavigation, setHasUnsavedChanges]);
 
   return (
     <Paper

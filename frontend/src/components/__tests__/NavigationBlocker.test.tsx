@@ -7,9 +7,10 @@ jest.mock('../../contexts/NavigationContext', () => ({
   useNavigation: jest.fn()
 }));
 
-// Mock the useNavigate hook from react-router-dom
+// Mock the useNavigate and useLocation hooks from react-router-dom
 jest.mock('react-router-dom', () => ({
-  useNavigate: jest.fn(() => jest.fn())
+  useNavigate: jest.fn(() => jest.fn()),
+  useLocation: jest.fn(() => ({ pathname: '/current-path' }))
 }));
 
 describe('NavigationBlocker', () => {
