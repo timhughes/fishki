@@ -301,14 +301,34 @@ function AppContent() {
   };
 
   const handleCreatePage = (folderPath: string) => {
-    setNewPageFolderPath(folderPath);
-    setNewPageDialogOpen(true);
+    // Check if navigation should be blocked
+    if (blockNavigation) {
+      // Store the pending action as a callback
+      setPendingLocation('new-page-dialog');
+      setNavigationCallback(() => () => {
+        setNewPageFolderPath(folderPath);
+        setNewPageDialogOpen(true);
+      });
+    } else {
+      // Proceed directly if no unsaved changes
+      setNewPageFolderPath(folderPath);
+      setNewPageDialogOpen(true);
+    }
   };
 
   const handleNewPageConfirm = (pageName: string, folderPath: string) => {
     setNewPageDialogOpen(false);
     const fullPath = folderPath ? `${folderPath}${pageName}` : pageName;
-    navigate(`/edit/${fullPath}`);
+    
+    // Check if navigation should be blocked
+    if (blockNavigation) {
+      // Store the pending navigation and show confirmation dialog
+      setPendingLocation(`/edit/${fullPath}`);
+      setNavigationCallback(() => () => navigate(`/edit/${fullPath}`));
+    } else {
+      // Navigate directly if no blocking needed
+      navigate(`/edit/${fullPath}`);
+    }
   };
 
   const toggleDrawer = () => {
