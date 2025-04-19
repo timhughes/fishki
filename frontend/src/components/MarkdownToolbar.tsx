@@ -5,8 +5,6 @@ import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Box from '@mui/material/Box';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import ToggleButton from '@mui/material/ToggleButton';
 import BoldIcon from '@mui/icons-material/FormatBold';
 import ItalicIcon from '@mui/icons-material/FormatItalic';
 import ListIcon from '@mui/icons-material/FormatListBulleted';
@@ -61,11 +59,6 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onViewModeChange,
   sx = {},
 }) => {
-  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: string | null) => {
-    if (newMode && onViewModeChange) {
-      onViewModeChange(newMode);
-    }
-  };
   return (
     <Paper 
       variant="outlined" 
@@ -77,7 +70,6 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
         flexWrap: 'wrap',
         gap: 0.5, // Reduced gap
         alignItems: 'center',
-        justifyContent: 'space-between', // Space between formatting tools and view mode toggle
         width: '100%', // Ensure toolbar takes full width
         ...sx
       }}
@@ -182,25 +174,39 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
       
       {/* Right side: View mode toggle - always show */}
       {onViewModeChange && (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="view mode"
-            size="small"
-          >
-            <ToggleButton value="edit" aria-label="edit mode">
-              <EditIcon fontSize="small" />
-            </ToggleButton>
-            <ToggleButton value="split" aria-label="split mode">
-              <ViewColumnIcon fontSize="small" />
-            </ToggleButton>
-            <ToggleButton value="preview" aria-label="preview mode">
-              <PreviewIcon fontSize="small" />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
+        <>
+          <Divider orientation="vertical" flexItem sx={{ visibility: viewMode === 'preview' ? 'hidden' : 'visible' }} />
+          
+          <ButtonGroup size="small" variant="outlined">
+            <Tooltip title="Edit Mode">
+              <IconButton 
+                onClick={() => onViewModeChange('edit')} 
+                size="small"
+                color={viewMode === 'edit' ? 'primary' : 'default'}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Split Mode">
+              <IconButton 
+                onClick={() => onViewModeChange('split')} 
+                size="small"
+                color={viewMode === 'split' ? 'primary' : 'default'}
+              >
+                <ViewColumnIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Preview Mode">
+              <IconButton 
+                onClick={() => onViewModeChange('preview')} 
+                size="small"
+                color={viewMode === 'preview' ? 'primary' : 'default'}
+              >
+                <PreviewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </ButtonGroup>
+        </>
       )}
     </Paper>
   );
