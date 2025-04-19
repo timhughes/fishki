@@ -145,6 +145,18 @@ export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProp
         e.preventDefault();
         insertText(e.currentTarget, '  ');
       }
+      
+      // Ctrl+B for bold
+      if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        formatBold(e.currentTarget);
+      }
+      
+      // Ctrl+I for italic
+      if (e.ctrlKey && e.key === 'i') {
+        e.preventDefault();
+        formatItalic(e.currentTarget);
+      }
     }
   };
 };
