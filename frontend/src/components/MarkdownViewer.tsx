@@ -181,29 +181,31 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       <Paper
         elevation={0}
         sx={{
-          maxWidth: '1800px',
+          width: '100%', // Ensure it takes full width
           margin: '0 auto',
-          p: 3,
+          p: 1, // Reduced padding
           bgcolor: 'background.paper',
           display: 'flex',
           flexDirection: 'column',
           height: 'calc(100vh - 100px)', // Take most of the viewport height
         }}
       >
-        {/* Fixed Header Area */}
+        {/* Compact Header Area */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            mb: 2,
+            mb: 1, // Reduced margin
+            flexWrap: { xs: 'wrap', md: 'nowrap' },
+            gap: 1,
             flex: '0 0 auto', // Don't grow or shrink
           }}
         >
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
             {filePath.split('/').pop()?.replace(/\.md$/, '')}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
             <Button
               variant="outlined"
               color="error"
@@ -243,6 +245,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             flex: '1 1 auto', // Take remaining space
             overflowY: 'auto', // Enable vertical scrolling
             overflowX: 'hidden', // Hide horizontal scrolling
+            mt: 1, // Add a small top margin
+            p: 1, // Add padding inside the content area
             '& img': {
               maxWidth: '100%',
               height: 'auto',

@@ -55,11 +55,12 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
     <Paper 
       variant="outlined" 
       sx={{ 
-        mb: 2, 
-        p: 1, 
+        mb: 1, // Reduced margin
+        py: 0.5, // Reduced padding
+        px: 1,
         display: 'flex',
         flexWrap: 'wrap',
-        gap: 1,
+        gap: 0.5, // Reduced gap
         alignItems: 'center',
         width: '100%', // Ensure toolbar takes full width
         ...sx

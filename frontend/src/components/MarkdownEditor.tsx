@@ -12,6 +12,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import PreviewIcon from '@mui/icons-material/Visibility';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
+import IconButton from '@mui/material/IconButton';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -171,30 +172,71 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       sx={{
         width: '100%', // Ensure it takes full width
         margin: '0 auto',
-        p: 3,
+        p: 1, // Reduced padding
         bgcolor: 'background.paper',
         display: 'flex',
         flexDirection: 'column',
         height: 'calc(100vh - 100px)', // Take most of the viewport height
       }}
     >
-      {/* Fixed Header Area */}
+      {/* Compact Header Area */}
       <Box sx={{ flex: '0 0 auto' }}>
+        {/* Combined top row with all controls */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            mb: 2,
+            alignItems: 'center',
+            mb: 1, // Reduced margin
+            flexWrap: { xs: 'wrap', md: 'nowrap' },
+            gap: 1,
           }}
         >
-          <Box>
+          {/* Left side: View mode toggle */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setViewMode(newMode)}
+            aria-label="view mode"
+            size="small"
+            sx={{ flexShrink: 0 }}
+          >
+            <ToggleButton value="edit" aria-label="edit mode">
+              <EditIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton value="split" aria-label="split mode">
+              <ViewColumnIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton value="preview" aria-label="preview mode">
+              <PreviewIcon fontSize="small" />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          
+          {/* Middle: Status indicators */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, justifyContent: 'center' }}>
             {hasChanges && (
-              <Alert severity="info" sx={{ py: 0 }}>
-                You have unsaved changes
+              <Alert severity="info" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
+                Unsaved changes
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
+                {error}
+                <IconButton 
+                  size="small" 
+                  aria-label="close" 
+                  color="inherit" 
+                  onClick={() => setError(undefined)}
+                  sx={{ p: 0, ml: 1 }}
+                >
+                  ×
+                </IconButton>
               </Alert>
             )}
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          
+          {/* Right side: Action buttons */}
+          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
             <Button
               variant="outlined"
               color="secondary"
@@ -210,7 +252,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               color="primary"
               onClick={handleSave}
               disabled={saving}
-              startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+              startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
               size="small"
             >
               {saving ? 'Saving...' : 'Save'}
@@ -218,39 +260,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           </Box>
         </Box>
 
-        {error && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="error" onClose={() => setError(undefined)}>
-              {error}
-            </Alert>
-          </Box>
-        )}
-
-        {/* View Mode Toggle */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newMode) => newMode && setViewMode(newMode)}
-            aria-label="view mode"
-            size="small"
-          >
-            <ToggleButton value="edit" aria-label="edit mode">
-              <EditIcon fontSize="small" />
-              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Edit</Box>
-            </ToggleButton>
-            <ToggleButton value="split" aria-label="split mode">
-              <ViewColumnIcon fontSize="small" />
-              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Split</Box>
-            </ToggleButton>
-            <ToggleButton value="preview" aria-label="preview mode">
-              <PreviewIcon fontSize="small" />
-              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Preview</Box>
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {/* Formatting Toolbar */}
+        {/* Formatting Toolbar - more compact */}
         <Box sx={{ width: '100%' }}>
           <MarkdownToolbar 
             onBold={() => {
