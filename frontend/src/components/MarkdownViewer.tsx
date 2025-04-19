@@ -215,7 +215,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             </Button>
             <Button
               variant="outlined"
-              color="primary"
+              color="secondary"
               onClick={handleMoveClick}
               startIcon={<MoveIcon />}
               size="small"

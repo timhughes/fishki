@@ -201,6 +201,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               onClick={handleCancel}
               disabled={saving}
               startIcon={<CancelIcon />}
+              size="small"
             >
               Cancel
             </Button>
@@ -210,6 +211,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               onClick={handleSave}
               disabled={saving}
               startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+              size="small"
             >
               {saving ? 'Saving...' : 'Save'}
             </Button>
