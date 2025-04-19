@@ -185,14 +185,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           margin: '0 auto',
           p: 3,
           bgcolor: 'background.paper',
+          display: 'flex',
+          flexDirection: 'column',
+          height: 'calc(100vh - 100px)', // Take most of the viewport height
         }}
       >
+        {/* Fixed Header Area */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             mb: 2,
+            flex: '0 0 auto', // Don't grow or shrink
           }}
         >
           <Typography variant="h6" color="text.secondary">
@@ -228,11 +233,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             </Button>
           </Box>
         </Box>
+        
+        {/* Scrollable Content Area */}
         <Box
           component="article"
           aria-label="markdown-content"
           className="markdown-content"
           sx={{
+            flex: '1 1 auto', // Take remaining space
+            overflowY: 'auto', // Enable vertical scrolling
+            overflowX: 'hidden', // Hide horizontal scrolling
             '& img': {
               maxWidth: '100%',
               height: 'auto',

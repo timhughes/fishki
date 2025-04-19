@@ -169,137 +169,146 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     <Paper
       elevation={0}
       sx={{
-        maxWidth: '100%',
+        width: '100%', // Ensure it takes full width
         margin: '0 auto',
         p: 3,
         bgcolor: 'background.paper',
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 100px)', // Take most of the viewport height
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          mb: 2,
-        }}
-      >
-        <Box>
-          {hasChanges && (
-            <Alert severity="info" sx={{ py: 0 }}>
-              You have unsaved changes
-            </Alert>
-          )}
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={handleCancel}
-            disabled={saving}
-            startIcon={<CancelIcon />}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSave}
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
-        </Box>
-      </Box>
-
-      {error && (
-        <Box sx={{ mb: 2 }}>
-          <Alert severity="error" onClose={() => setError(undefined)}>
-            {error}
-          </Alert>
-        </Box>
-      )}
-
-      {/* View Mode Toggle */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={(_, newMode) => newMode && setViewMode(newMode)}
-          aria-label="view mode"
-          size="small"
+      {/* Fixed Header Area */}
+      <Box sx={{ flex: '0 0 auto' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mb: 2,
+          }}
         >
-          <ToggleButton value="edit" aria-label="edit mode">
-            <EditIcon fontSize="small" />
-            <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Edit</Box>
-          </ToggleButton>
-          <ToggleButton value="split" aria-label="split mode">
-            <ViewColumnIcon fontSize="small" />
-            <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Split</Box>
-          </ToggleButton>
-          <ToggleButton value="preview" aria-label="preview mode">
-            <PreviewIcon fontSize="small" />
-            <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Preview</Box>
-          </ToggleButton>
-        </ToggleButtonGroup>
+          <Box>
+            {hasChanges && (
+              <Alert severity="info" sx={{ py: 0 }}>
+                You have unsaved changes
+              </Alert>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleCancel}
+              disabled={saving}
+              startIcon={<CancelIcon />}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </Box>
+        </Box>
+
+        {error && (
+          <Box sx={{ mb: 2 }}>
+            <Alert severity="error" onClose={() => setError(undefined)}>
+              {error}
+            </Alert>
+          </Box>
+        )}
+
+        {/* View Mode Toggle */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setViewMode(newMode)}
+            aria-label="view mode"
+            size="small"
+          >
+            <ToggleButton value="edit" aria-label="edit mode">
+              <EditIcon fontSize="small" />
+              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Edit</Box>
+            </ToggleButton>
+            <ToggleButton value="split" aria-label="split mode">
+              <ViewColumnIcon fontSize="small" />
+              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Split</Box>
+            </ToggleButton>
+            <ToggleButton value="preview" aria-label="preview mode">
+              <PreviewIcon fontSize="small" />
+              <Box component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' } }}>Preview</Box>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {/* Formatting Toolbar */}
+        <Box sx={{ width: '100%' }}>
+          <MarkdownToolbar 
+            onBold={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatBold(textarea as HTMLTextAreaElement);
+            }}
+            onItalic={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatItalic(textarea as HTMLTextAreaElement);
+            }}
+            onHeading={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatHeading(textarea as HTMLTextAreaElement, 2);
+            }}
+            onCode={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatCode(textarea as HTMLTextAreaElement);
+            }}
+            onCodeBlock={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatCodeBlock(textarea as HTMLTextAreaElement);
+            }}
+            onLink={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatLink(textarea as HTMLTextAreaElement);
+            }}
+            onImage={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatImage(textarea as HTMLTextAreaElement);
+            }}
+            onBulletList={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatBulletList(textarea as HTMLTextAreaElement);
+            }}
+            onNumberedList={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatNumberedList(textarea as HTMLTextAreaElement);
+            }}
+            onQuote={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatQuote(textarea as HTMLTextAreaElement);
+            }}
+            onHorizontalRule={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatHorizontalRule(textarea as HTMLTextAreaElement);
+            }}
+            onTaskList={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatTaskList(textarea as HTMLTextAreaElement);
+            }}
+            onTable={() => {
+              const textarea = document.querySelector('textarea');
+              if (textarea) formatTable(textarea as HTMLTextAreaElement);
+            }}
+            sx={{ display: viewMode === 'preview' ? 'none' : 'flex', width: '100%' }}
+          />
+        </Box>
       </Box>
 
-      {/* Formatting Toolbar */}
-      <MarkdownToolbar 
-        onBold={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatBold(textarea as HTMLTextAreaElement);
-        }}
-        onItalic={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatItalic(textarea as HTMLTextAreaElement);
-        }}
-        onHeading={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatHeading(textarea as HTMLTextAreaElement, 2);
-        }}
-        onCode={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatCode(textarea as HTMLTextAreaElement);
-        }}
-        onCodeBlock={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatCodeBlock(textarea as HTMLTextAreaElement);
-        }}
-        onLink={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatLink(textarea as HTMLTextAreaElement);
-        }}
-        onImage={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatImage(textarea as HTMLTextAreaElement);
-        }}
-        onBulletList={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatBulletList(textarea as HTMLTextAreaElement);
-        }}
-        onNumberedList={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatNumberedList(textarea as HTMLTextAreaElement);
-        }}
-        onQuote={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatQuote(textarea as HTMLTextAreaElement);
-        }}
-        onHorizontalRule={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatHorizontalRule(textarea as HTMLTextAreaElement);
-        }}
-        onTaskList={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatTaskList(textarea as HTMLTextAreaElement);
-        }}
-        onTable={() => {
-          const textarea = document.querySelector('textarea');
-          if (textarea) formatTable(textarea as HTMLTextAreaElement);
-        }}
-        sx={{ display: viewMode === 'preview' ? 'none' : 'flex' }}
-      />
-
+      {/* Scrollable Content Area */}
       <Box
         sx={{
           display: 'flex',
@@ -308,8 +317,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           position: 'relative',
           width: '100%',
           overflow: 'hidden', // Prevent container overflow
-          height: 'calc(100vh - 200px)', // Dynamic height based on viewport
-          minHeight: '400px', // Minimum height
+          flex: '1 1 auto', // Take remaining space
+          minHeight: 0, // Allow box to shrink below content size
         }}
         ref={containerRef}
       >

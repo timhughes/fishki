@@ -408,6 +408,10 @@ function AppContent() {
             transition: drawerOpen ? 'none' : 'width 0.2s',
             bgcolor: 'background.default',
             marginLeft: drawerOpen ? 'var(--sidebar-width, 300px)' : 0,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh',
+            overflow: 'hidden', // Prevent scrolling of the main container
           }}
         >
           <Toolbar /> {/* Spacer to push content below AppBar */}

@@ -61,6 +61,7 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
         flexWrap: 'wrap',
         gap: 1,
         alignItems: 'center',
+        width: '100%', // Ensure toolbar takes full width
         ...sx
       }}
     >
