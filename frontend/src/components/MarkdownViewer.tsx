@@ -16,6 +16,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { api } from '../api/client';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { MoveDialog } from './MoveDialog';
+import { FileBreadcrumbs } from './Breadcrumbs';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import 'highlight.js/styles/github.css';
@@ -190,22 +191,25 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           height: 'calc(100vh - 100px)', // Take most of the viewport height
         }}
       >
-        {/* Compact Header Area */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
+        {/* Compact header with breadcrumbs and buttons side by side */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
             alignItems: 'center',
-            mb: 1, // Reduced margin
-            flexWrap: { xs: 'wrap', md: 'nowrap' },
-            gap: 1,
+            mb: 2,
             flex: '0 0 auto', // Don't grow or shrink
           }}
         >
-          <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-            {filePath.split('/').pop()?.replace(/\.md$/, '')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+          <FileBreadcrumbs filePath={filePath} />
+          
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <Button
               variant="outlined"
               color="error"
@@ -248,79 +252,21 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             mt: 1, // Add a small top margin
             p: 1, // Add padding inside the content area
             '& img': {
-              maxWidth: '100%',
+              maxWidth: '100%', // Ensure images don't overflow
               height: 'auto',
-            },
-            '& pre': {
-              borderRadius: 1,
-              overflow: 'auto',
-              padding: '0.5rem',
-              margin: '1rem 0',
-              backgroundColor: '#f6f8fa',
-            },
-            '& code': {
-              fontFamily: 'monospace',
-              fontSize: '0.9rem',
-            },
-            '& pre > code': {
-              padding: 0,
-              background: 'none',
-            },
-            '& :not(pre) > code': {
-              bgcolor: '#f6f8fa',
-              px: 0.5,
-              borderRadius: 0.5,
-            },
-            '& blockquote': {
-              borderLeft: '4px solid',
-              borderColor: 'grey.300',
-              pl: 2,
-              ml: 0,
-              color: 'text.secondary',
-            },
-            '& table': {
-              borderCollapse: 'collapse',
-              width: '100%',
-              '& th, & td': {
-                border: '1px solid',
-                borderColor: 'grey.300',
-                p: 1,
-              },
-              '& th': {
-                bgcolor: 'grey.50',
-              },
-            },
-            '& h1, & h2': {
-              borderBottom: '1px solid',
-              borderColor: 'grey.200',
-              pb: 1,
-            },
-            '& a': {
-              color: 'primary.main',
-              textDecoration: 'none',
-              '&:hover': {
-                textDecoration: 'underline',
-              },
-            },
-            '& hr': {
-              border: 'none',
-              height: '1px',
-              bgcolor: 'grey.200',
-              my: 2,
             },
           }}
         >
-          <Box className="markdown-content">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw, rehypeSanitize, [rehypeHighlight, { detect: true }]]}
-            >
-              {content}
-            </ReactMarkdown>
-          </Box>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+          >
+            {content}
+          </ReactMarkdown>
         </Box>
       </Paper>
 
+      {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         pagePath={filePath}
@@ -330,6 +276,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         error={deleteError}
       />
       
+      {/* Move Dialog */}
       <MoveDialog
         open={moveDialogOpen}
         currentPath={filePath}

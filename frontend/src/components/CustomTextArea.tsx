@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
+import { SxProps, Theme } from '@mui/material/styles';
 
 const StyledTextArea = styled('textarea')(({ theme }) => ({
   width: '100%',
@@ -19,36 +20,30 @@ const StyledTextArea = styled('textarea')(({ theme }) => ({
 
 interface CustomTextAreaProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   disabled?: boolean;
+  placeholder?: string;
+  sx?: SxProps<Theme>;
 }
 
-export const CustomTextArea: React.FC<CustomTextAreaProps> = ({
-  value,
-  onChange,
-  onKeyDown,
-  disabled = false,
-}) => {
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+export const CustomTextArea = forwardRef<HTMLTextAreaElement, CustomTextAreaProps>(
+  ({ value, onChange, onKeyDown, disabled = false, placeholder, sx }, ref) => {
+    // Log the number of textareas for debugging
+    useEffect(() => {
+      console.log('Custom TextArea - Textareas in DOM:', document.querySelectorAll('textarea').length);
+    }, []);
 
-  // Handle content changes
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-  };
-
-  // Log the number of textareas for debugging
-  useEffect(() => {
-    console.log('Custom TextArea - Textareas in DOM:', document.querySelectorAll('textarea').length);
-  }, []);
-
-  return (
-    <StyledTextArea
-      ref={textAreaRef}
-      value={value}
-      onChange={handleChange}
-      onKeyDown={onKeyDown}
-      disabled={disabled}
-    />
-  );
-};
+    return (
+      <StyledTextArea
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        disabled={disabled}
+        placeholder={placeholder}
+        sx={sx}
+      />
+    );
+  }
+);

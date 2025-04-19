@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface UseMarkdownEditorProps {
   content: string;
@@ -12,6 +12,9 @@ interface Selection {
 }
 
 export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProps) => {
+  // Create a ref for the textarea
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  
   // Effect to track changes
   useEffect(() => {
     // Log the number of textareas for debugging
@@ -124,8 +127,65 @@ export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProp
   const formatTable = (textarea: HTMLTextAreaElement) => {
     insertText(textarea, '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n');
   };
+  
+  // Handle toolbar actions
+  const handleToolbarAction = (action: string) => {
+    if (!textAreaRef.current) return;
+    
+    switch (action) {
+      case 'bold':
+        formatBold(textAreaRef.current);
+        break;
+      case 'italic':
+        formatItalic(textAreaRef.current);
+        break;
+      case 'h1':
+        formatHeading(textAreaRef.current, 1);
+        break;
+      case 'h2':
+        formatHeading(textAreaRef.current, 2);
+        break;
+      case 'h3':
+        formatHeading(textAreaRef.current, 3);
+        break;
+      case 'code':
+        formatCode(textAreaRef.current);
+        break;
+      case 'codeblock':
+        formatCodeBlock(textAreaRef.current);
+        break;
+      case 'link':
+        formatLink(textAreaRef.current);
+        break;
+      case 'image':
+        formatImage(textAreaRef.current);
+        break;
+      case 'bulletlist':
+        formatBulletList(textAreaRef.current);
+        break;
+      case 'numberedlist':
+        formatNumberedList(textAreaRef.current);
+        break;
+      case 'quote':
+        formatQuote(textAreaRef.current);
+        break;
+      case 'hr':
+        formatHorizontalRule(textAreaRef.current);
+        break;
+      case 'tasklist':
+        formatTaskList(textAreaRef.current);
+        break;
+      case 'table':
+        formatTable(textAreaRef.current);
+        break;
+      default:
+        break;
+    }
+  };
 
   return {
+    textAreaRef,
+    handleToolbarAction,
     formatBold,
     formatItalic,
     formatHeading,

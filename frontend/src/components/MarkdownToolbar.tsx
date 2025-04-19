@@ -23,38 +23,14 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import { SxProps, Theme } from '@mui/material/styles';
 
 interface MarkdownToolbarProps {
-  onBold: () => void;
-  onItalic: () => void;
-  onHeading: () => void;
-  onCode: () => void;
-  onCodeBlock: () => void;
-  onLink: () => void;
-  onImage: () => void;
-  onBulletList: () => void;
-  onNumberedList: () => void;
-  onQuote: () => void;
-  onHorizontalRule: () => void;
-  onTaskList: () => void;
-  onTable: () => void;
+  onAction: (action: string) => void;
   viewMode?: string;
   onViewModeChange?: (mode: string) => void;
   sx?: SxProps<Theme>;
 }
 
 export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
-  onBold,
-  onItalic,
-  onHeading,
-  onCode,
-  onCodeBlock,
-  onLink,
-  onImage,
-  onBulletList,
-  onNumberedList,
-  onQuote,
-  onHorizontalRule,
-  onTaskList,
-  onTable,
+  onAction,
   viewMode = 'edit',
   onViewModeChange,
   sx = {},
@@ -85,17 +61,17 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
       }}>
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Bold (Ctrl+B)">
-            <IconButton onClick={onBold} size="small">
+            <IconButton onClick={() => onAction('bold')} size="small">
               <BoldIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Italic (Ctrl+I)">
-            <IconButton onClick={onItalic} size="small">
+            <IconButton onClick={() => onAction('italic')} size="small">
               <ItalicIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Heading">
-            <IconButton onClick={onHeading} size="small">
+            <IconButton onClick={() => onAction('h2')} size="small">
               <HeadingIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -105,17 +81,17 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
 
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Bullet List">
-            <IconButton onClick={onBulletList} size="small">
+            <IconButton onClick={() => onAction('bulletlist')} size="small">
               <ListIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Numbered List">
-            <IconButton onClick={onNumberedList} size="small">
+            <IconButton onClick={() => onAction('numberedlist')} size="small">
               <NumberedListIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Task List">
-            <IconButton onClick={onTaskList} size="small">
+            <IconButton onClick={() => onAction('tasklist')} size="small">
               <TaskListIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -125,12 +101,12 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
 
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Inline Code">
-            <IconButton onClick={onCode} size="small">
+            <IconButton onClick={() => onAction('code')} size="small">
               <CodeIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Code Block">
-            <IconButton onClick={onCodeBlock} size="small">
+            <IconButton onClick={() => onAction('codeblock')} size="small">
               <CodeIcon fontSize="small" sx={{ transform: 'scale(1.2)' }} />
             </IconButton>
           </Tooltip>
@@ -140,12 +116,12 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
 
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Link">
-            <IconButton onClick={onLink} size="small">
+            <IconButton onClick={() => onAction('link')} size="small">
               <LinkIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Image">
-            <IconButton onClick={onImage} size="small">
+            <IconButton onClick={() => onAction('image')} size="small">
               <ImageIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -155,17 +131,17 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
 
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Blockquote">
-            <IconButton onClick={onQuote} size="small">
+            <IconButton onClick={() => onAction('quote')} size="small">
               <QuoteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Table">
-            <IconButton onClick={onTable} size="small">
+            <IconButton onClick={() => onAction('table')} size="small">
               <TableIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Horizontal Rule">
-            <IconButton onClick={onHorizontalRule} size="small">
+            <IconButton onClick={() => onAction('hr')} size="small">
               <HorizontalRuleIcon fontSize="small" />
             </IconButton>
           </Tooltip>

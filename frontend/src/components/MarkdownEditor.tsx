@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
@@ -19,6 +19,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { MarkdownToolbar } from './MarkdownToolbar';
 import { useMarkdownEditor } from '../hooks/useMarkdownEditor';
 import { CustomTextArea } from './CustomTextArea';
+import { FileBreadcrumbs } from './Breadcrumbs';
 
 // Define view mode type
 type ViewMode = 'split' | 'edit' | 'preview';
@@ -48,105 +49,98 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   
   // Track the split position
   const [splitPosition, setSplitPosition] = useState(() => {
-    // Try to get saved position from localStorage
-    const savedPosition = localStorage.getItem('fishki-split-position');
-    return savedPosition ? parseInt(savedPosition, 10) : 50; // Default to 50%
+    // Default to 50% split
+    return window.innerWidth > 768 ? 50 : 100;
   });
   
-  // Refs for drag handling
-  const isDraggingRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Use our navigation protection hooks
+  // Get navigation context for unsaved changes protection
   const { setBlockNavigation, setHasUnsavedChanges } = useNavigation();
-
-  // Use our markdown editor hook
-  const {
-    formatBold,
-    formatItalic,
-    formatHeading,
-    formatCode,
-    formatCodeBlock,
-    formatLink,
-    formatImage,
-    formatBulletList,
-    formatNumberedList,
-    formatQuote,
-    formatHorizontalRule,
-    formatTaskList,
-    formatTable,
-    handleKeyDown
-  } = useMarkdownEditor({ content, setContent });
-
-  // Update hasChanges when content changes
-  React.useEffect(() => {
-    const contentChanged = content !== initialContent;
-    setHasChanges(contentChanged);
-    setBlockNavigation(contentChanged);
-    setHasUnsavedChanges(contentChanged);
-  }, [content, initialContent, setBlockNavigation, setHasUnsavedChanges]);
-
+  
+  // Set up editor with toolbar actions
+  const { 
+    textAreaRef,
+    handleToolbarAction,
+    handleKeyDown,
+  } = useMarkdownEditor({
+    content,
+    setContent,
+  });
+  
+  // Handle content changes
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    
+    // Mark as changed if different from initial
+    if (newContent !== initialContent && !hasChanges) {
+      setHasChanges(true);
+      setBlockNavigation(true);
+      setHasUnsavedChanges(true);
+    } else if (newContent === initialContent && hasChanges) {
+      setHasChanges(false);
+      setBlockNavigation(false);
+      setHasUnsavedChanges(false);
+    }
+  };
+  
+  // Handle save action
   const handleSave = async () => {
     try {
       setSaving(true);
+      setError(undefined);
       await api.save(filePath, content);
       setHasChanges(false);
       setBlockNavigation(false);
       setHasUnsavedChanges(false);
       onSave();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save content');
-    } finally {
-      setSaving(false); // Always reset saving state
+      setError(err instanceof Error ? err.message : 'Failed to save');
+      setSaving(false);
     }
   };
-
+  
+  // Handle cancel action
   const handleCancel = () => {
+    setHasChanges(false);
     setBlockNavigation(false);
     setHasUnsavedChanges(false);
     onCancel();
   };
-
-  // Add drag handling functions
-  const handleDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRef.current = true;
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('mouseup', handleDragEnd);
-    // Add a class to the body to change cursor during dragging
-    document.body.classList.add('resizing');
+  
+  // Handle view mode changes
+  const handleViewModeChange = (mode: string) => {
+    setViewMode(mode as ViewMode);
   };
-
-  const handleDragMove = (e: MouseEvent) => {
-    if (!isDraggingRef.current || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const mouseX = e.clientX - containerRect.left;
-    
-    // Calculate position as percentage of container width
-    let newPosition = (mouseX / containerWidth) * 100;
-    
-    // Constrain to reasonable limits (10% to 90%)
-    newPosition = Math.max(10, Math.min(90, newPosition));
-    
-    setSplitPosition(newPosition);
-  };
-
-  const handleDragEnd = () => {
-    isDraggingRef.current = false;
-    document.removeEventListener('mousemove', handleDragMove);
-    document.removeEventListener('mouseup', handleDragEnd);
-    document.body.classList.remove('resizing');
-    
-    // Save position to localStorage
-    localStorage.setItem('fishki-split-position', splitPosition.toString());
-  };
-
-  // Add effect to save split position when it changes
+  
+  // Focus the editor on mount
   useEffect(() => {
-    if (viewMode === 'split') {
-      localStorage.setItem('fishki-split-position', splitPosition.toString());
+    if (textAreaRef.current) {
+      textAreaRef.current.focus();
+    }
+  }, [textAreaRef]);
+  
+  // Calculate editor and preview widths based on view mode and split position
+  const editorWidth = React.useMemo(() => {
+    switch (viewMode) {
+      case 'edit':
+        return '100%';
+      case 'preview':
+        return '0%';
+      case 'split':
+      default:
+        return `${splitPosition}%`;
+    }
+  }, [splitPosition, viewMode]);
+  
+  const previewWidth = React.useMemo(() => {
+    switch (viewMode) {
+      case 'edit':
+        return '0%';
+      case 'preview':
+        return '100%';
+      case 'split':
+      default:
+        return `${100 - splitPosition}%`;
     }
   }, [splitPosition, viewMode]);
   
@@ -176,42 +170,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     >
       {/* Compact Header Area */}
       <Box sx={{ flex: '0 0 auto' }}>
-        {/* Combined top row with status indicators and action buttons */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
+        {/* Compact header with breadcrumbs and buttons side by side */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
             alignItems: 'center',
-            mb: 1, // Reduced margin
-            flexWrap: { xs: 'wrap', md: 'nowrap' },
-            gap: 1,
+            mb: 2,
+            flex: '0 0 auto', // Don't grow or shrink
           }}
         >
-          {/* Left/Middle: Status indicators */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            {hasChanges && (
-              <Alert severity="info" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
-                Unsaved changes
-              </Alert>
-            )}
-            {error && (
-              <Alert severity="error" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
-                {error}
-                <IconButton 
-                  size="small" 
-                  aria-label="close" 
-                  color="inherit" 
-                  onClick={() => setError(undefined)}
-                  sx={{ p: 0, ml: 1 }}
-                >
-                  ×
-                </IconButton>
-              </Alert>
-            )}
-          </Box>
+          <FileBreadcrumbs filePath={filePath} />
           
-          {/* Right side: Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <Button
               variant="outlined"
               color="secondary"
@@ -230,166 +207,149 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
               size="small"
             >
-              {saving ? 'Saving...' : 'Save'}
+              Save
             </Button>
           </Box>
         </Box>
-
-        {/* Formatting Toolbar - more compact with view mode toggle */}
-        <Box sx={{ width: '100%' }}>
-          <MarkdownToolbar 
-            onBold={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatBold(textarea as HTMLTextAreaElement);
-            }}
-            onItalic={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatItalic(textarea as HTMLTextAreaElement);
-            }}
-            onHeading={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatHeading(textarea as HTMLTextAreaElement, 2);
-            }}
-            onCode={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatCode(textarea as HTMLTextAreaElement);
-            }}
-            onCodeBlock={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatCodeBlock(textarea as HTMLTextAreaElement);
-            }}
-            onLink={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatLink(textarea as HTMLTextAreaElement);
-            }}
-            onImage={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatImage(textarea as HTMLTextAreaElement);
-            }}
-            onBulletList={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatBulletList(textarea as HTMLTextAreaElement);
-            }}
-            onNumberedList={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatNumberedList(textarea as HTMLTextAreaElement);
-            }}
-            onQuote={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatQuote(textarea as HTMLTextAreaElement);
-            }}
-            onHorizontalRule={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatHorizontalRule(textarea as HTMLTextAreaElement);
-            }}
-            onTaskList={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatTaskList(textarea as HTMLTextAreaElement);
-            }}
-            onTable={() => {
-              const textarea = document.querySelector('textarea');
-              if (textarea) formatTable(textarea as HTMLTextAreaElement);
-            }}
-            viewMode={viewMode}
-            onViewModeChange={(newMode) => setViewMode(newMode as ViewMode)}
-            sx={{ width: '100%' }}
-          />
+        
+        {/* Status indicators */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          {hasChanges && (
+            <Alert severity="info" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
+              Unsaved changes
+            </Alert>
+          )}
+          {error && (
+            <Alert severity="error" sx={{ py: 0, px: 1, height: '32px', '& .MuiAlert-message': { padding: '4px 0' } }}>
+              {error}
+              <IconButton 
+                size="small" 
+                aria-label="close" 
+                color="inherit" 
+                onClick={() => setError(undefined)}
+                sx={{ p: 0, ml: 1 }}
+              >
+                ×
+              </IconButton>
+            </Alert>
+          )}
         </Box>
+        
+        {/* Toolbar */}
+        <MarkdownToolbar 
+          onAction={handleToolbarAction} 
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
       </Box>
-
-      {/* Scrollable Content Area */}
+      
+      {/* Editor and Preview Area */}
       <Box
         sx={{
           display: 'flex',
-          flexDirection: viewMode === 'split' ? 'row' : 'column',
-          gap: viewMode === 'split' ? 0 : 2,
-          position: 'relative',
-          width: '100%',
-          overflow: 'hidden', // Prevent container overflow
           flex: '1 1 auto', // Take remaining space
-          minHeight: 0, // Allow box to shrink below content size
+          overflow: 'hidden', // Prevent overflow
+          position: 'relative', // For absolute positioning of the drag handle
+          mt: 1, // Add margin top
         }}
-        ref={containerRef}
       >
         {/* Editor */}
-        {(viewMode === 'edit' || viewMode === 'split') && (
-          <Box sx={{ 
-            flex: viewMode === 'split' ? `0 0 ${splitPosition}%` : '100%',
-            transition: viewMode === 'split' ? 'none' : 'flex 0.3s ease',
-            minWidth: 0, // Allow box to shrink below content size
-            overflow: 'hidden', // Prevent overflow from child elements
-            height: '100%', // Take full height of parent
-            display: 'flex', // Use flexbox for full height child
-            flexDirection: 'column', // Stack children vertically
-          }}>
-            <CustomTextArea
-              value={content}
-              onChange={(newContent) => setContent(newContent)}
-              onKeyDown={handleKeyDown}
-              disabled={saving}
-            />
-          </Box>
-        )}
+        <Box
+          sx={{
+            width: editorWidth,
+            display: viewMode === 'preview' ? 'none' : 'block',
+            overflow: 'hidden',
+            pr: viewMode === 'split' ? 1 : 0, // Add padding when in split mode
+          }}
+        >
+          <CustomTextArea
+            ref={textAreaRef}
+            value={content}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Write your markdown here..."
+            sx={{
+              width: '100%',
+              height: '100%',
+              resize: 'none',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              p: 1,
+              fontFamily: 'monospace',
+              fontSize: '0.9rem',
+              lineHeight: 1.5,
+              overflowY: 'auto',
+            }}
+          />
+        </Box>
         
-        {/* Resizer handle */}
+        {/* Drag handle for split view */}
         {viewMode === 'split' && (
           <Box
             sx={{
-              width: '10px',
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `calc(${splitPosition}% - 8px)`,
+              width: '16px',
               cursor: 'col-resize',
-              backgroundColor: 'rgba(0, 0, 0, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%', // Take full height
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.2)',
-              },
-              zIndex: 1,
+              zIndex: 10,
             }}
-            onMouseDown={handleDragStart}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              
+              const startX = e.clientX;
+              const startPosition = splitPosition;
+              const containerWidth = e.currentTarget.parentElement?.clientWidth || 0;
+              
+              const handleMouseMove = (moveEvent: MouseEvent) => {
+                const deltaX = moveEvent.clientX - startX;
+                const deltaPercent = (deltaX / containerWidth) * 100;
+                const newPosition = Math.max(20, Math.min(80, startPosition + deltaPercent));
+                setSplitPosition(newPosition);
+              };
+              
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
+              
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
           >
-            <DragHandleIcon 
-              sx={{ 
-                transform: 'rotate(90deg)',
-                fontSize: '1rem',
-                color: 'text.secondary'
-              }} 
-            />
+            <DragHandleIcon sx={{ color: 'text.secondary', fontSize: '1rem' }} />
           </Box>
         )}
         
         {/* Preview */}
-        {(viewMode === 'preview' || viewMode === 'split') && (
-          <Box sx={{ 
-            flex: viewMode === 'split' ? `0 0 ${100 - splitPosition - 1}%` : '100%',
-            transition: viewMode === 'split' ? 'none' : 'flex 0.3s ease',
-            minWidth: 0, // Allow box to shrink below content size
-            overflow: 'hidden', // Prevent overflow from child elements
-            height: '100%', // Take full height of parent
-          }}>
-            <Paper
-              variant="outlined"
-              className="markdown-content"
-              data-testid="markdown-preview"
-              sx={{
-                height: '100%', // Take full height
-                p: 2,
-                overflowY: 'auto', // Enable vertical scrolling
-                overflowX: 'auto', // Enable horizontal scrolling
-              }}
-            >
-              <Box className="markdown-content">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
-                >
-                  {content}
-                </ReactMarkdown>
-              </Box>
-            </Paper>
-          </Box>
-        )}
+        <Box
+          sx={{
+            width: previewWidth,
+            display: viewMode === 'edit' ? 'none' : 'block',
+            overflow: 'auto',
+            pl: viewMode === 'split' ? 1 : 0, // Add padding when in split mode
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1,
+            '& img': {
+              maxWidth: '100%',
+              height: 'auto',
+            },
+          }}
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+          >
+            {content}
+          </ReactMarkdown>
+        </Box>
       </Box>
     </Paper>
   );

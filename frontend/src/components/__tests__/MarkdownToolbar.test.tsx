@@ -2,28 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MarkdownToolbar } from '../MarkdownToolbar';
 
 describe('MarkdownToolbar', () => {
-  const mockHandlers = {
-    onBold: jest.fn(),
-    onItalic: jest.fn(),
-    onHeading: jest.fn(),
-    onCode: jest.fn(),
-    onCodeBlock: jest.fn(),
-    onLink: jest.fn(),
-    onImage: jest.fn(),
-    onBulletList: jest.fn(),
-    onNumberedList: jest.fn(),
-    onQuote: jest.fn(),
-    onHorizontalRule: jest.fn(),
-    onTaskList: jest.fn(),
-    onTable: jest.fn(),
-  };
+  const mockActionHandler = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('renders all formatting buttons', () => {
-    render(<MarkdownToolbar {...mockHandlers} />);
+    render(<MarkdownToolbar onAction={mockActionHandler} />);
     
     // Check for buttons by their aria-label
     expect(screen.getByLabelText(/Bold/i)).toBeInTheDocument();
@@ -41,27 +27,59 @@ describe('MarkdownToolbar', () => {
     expect(screen.getByLabelText(/Horizontal Rule/i)).toBeInTheDocument();
   });
 
-  test('calls the correct handler when buttons are clicked', () => {
-    render(<MarkdownToolbar {...mockHandlers} />);
+  test('calls action handler when buttons are clicked', () => {
+    render(<MarkdownToolbar onAction={mockActionHandler} />);
     
     // Click on bold button
     fireEvent.click(screen.getByLabelText(/Bold/i));
-    expect(mockHandlers.onBold).toHaveBeenCalledTimes(1);
+    expect(mockActionHandler).toHaveBeenCalledWith('bold');
     
     // Click on italic button
     fireEvent.click(screen.getByLabelText(/Italic/i));
-    expect(mockHandlers.onItalic).toHaveBeenCalledTimes(1);
+    expect(mockActionHandler).toHaveBeenCalledWith('italic');
     
     // Click on heading button
     fireEvent.click(screen.getByLabelText(/Heading/i));
-    expect(mockHandlers.onHeading).toHaveBeenCalledTimes(1);
+    expect(mockActionHandler).toHaveBeenCalledWith('h2');
+  });
+
+  test('renders view mode buttons when onViewModeChange is provided', () => {
+    const mockViewModeChange = jest.fn();
+    render(
+      <MarkdownToolbar 
+        onAction={mockActionHandler} 
+        onViewModeChange={mockViewModeChange} 
+        viewMode="split"
+      />
+    );
     
-    // Click on bullet list button
-    fireEvent.click(screen.getByLabelText(/Bullet List/i));
-    expect(mockHandlers.onBulletList).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(/Edit Mode/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Split Mode/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Preview Mode/i)).toBeInTheDocument();
     
-    // Click on table button
-    fireEvent.click(screen.getByLabelText(/Table/i));
-    expect(mockHandlers.onTable).toHaveBeenCalledTimes(1);
+    // Click on preview mode button
+    fireEvent.click(screen.getByLabelText(/Preview Mode/i));
+    expect(mockViewModeChange).toHaveBeenCalledWith('preview');
+  });
+
+  test('highlights the current view mode button', () => {
+    render(
+      <MarkdownToolbar 
+        onAction={mockActionHandler} 
+        onViewModeChange={jest.fn()} 
+        viewMode="edit"
+      />
+    );
+    
+    // Check that the edit button has the primary color class
+    const editButton = screen.getByLabelText(/Edit Mode/i);
+    expect(editButton.closest('button')).toHaveClass('MuiButtonBase-root');
+    
+    // The other buttons should have default color
+    const splitButton = screen.getByLabelText(/Split Mode/i);
+    expect(splitButton.closest('button')).toHaveClass('MuiButtonBase-root');
+    
+    const previewButton = screen.getByLabelText(/Preview Mode/i);
+    expect(previewButton.closest('button')).toHaveClass('MuiButtonBase-root');
   });
 });
