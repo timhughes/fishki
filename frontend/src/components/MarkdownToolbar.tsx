@@ -16,6 +16,7 @@ import QuoteIcon from '@mui/icons-material/FormatQuote';
 import TableIcon from '@mui/icons-material/TableChart';
 import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule';
 import TaskListIcon from '@mui/icons-material/CheckBox';
+import { SxProps, Theme } from '@mui/material/styles';
 
 interface MarkdownToolbarProps {
   onBold: () => void;
@@ -31,6 +32,7 @@ interface MarkdownToolbarProps {
   onHorizontalRule: () => void;
   onTaskList: () => void;
   onTable: () => void;
+  sx?: SxProps<Theme>;
 }
 
 export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
@@ -47,6 +49,7 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onHorizontalRule,
   onTaskList,
   onTable,
+  sx = {},
 }) => {
   return (
     <Paper 
@@ -57,7 +60,8 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
         display: 'flex',
         flexWrap: 'wrap',
         gap: 1,
-        alignItems: 'center'
+        alignItems: 'center',
+        ...sx
       }}
     >
       <ButtonGroup size="small" variant="outlined">

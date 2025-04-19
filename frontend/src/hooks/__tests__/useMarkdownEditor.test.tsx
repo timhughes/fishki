@@ -37,7 +37,7 @@ describe('useMarkdownEditor', () => {
       ctrlKey: true,
       key: 'b',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent;
+    } as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
     
     result.current.handleKeyDown(boldEvent);
     
@@ -50,7 +50,7 @@ describe('useMarkdownEditor', () => {
       ctrlKey: true,
       key: 'i',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent;
+    } as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
     
     result.current.handleKeyDown(italicEvent);
     

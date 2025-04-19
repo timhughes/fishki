@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect } from 'react';
 
 interface UseMarkdownEditorProps {
   content: string;
@@ -12,101 +12,120 @@ interface Selection {
 }
 
 export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProps) => {
-  const textFieldRef = useRef<HTMLTextAreaElement | null>(null);
+  // Effect to track changes
+  useEffect(() => {
+    // Log the number of textareas for debugging
+    console.log('Textareas in DOM:', document.querySelectorAll('textarea').length);
+    console.log('Inputs in DOM:', document.querySelectorAll('input').length);
+  }, [content]);
 
-  // Helper function to get the current selection
-  const getSelection = (): Selection => {
-    const textField = textFieldRef.current;
-    if (!textField) {
-      return { start: 0, end: 0, text: '' };
-    }
-    
-    const start = textField.selectionStart;
-    const end = textField.selectionEnd;
+  // Helper function to get the current selection from a textarea
+  const getSelection = (textarea: HTMLTextAreaElement): Selection => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
     const text = content.substring(start, end);
     
     return { start, end, text };
   };
 
   // Helper function to insert text at cursor position
-  const insertText = (before: string, after: string = '') => {
-    const textField = textFieldRef.current;
-    if (!textField) return;
-    
-    const { start, end, text } = getSelection();
-    const newContent = 
-      content.substring(0, start) + 
-      before + 
-      text + 
-      after + 
-      content.substring(end);
-    
+  const insertText = (textarea: HTMLTextAreaElement, before: string, after: string = '') => {
+    const { start, end } = getSelection(textarea);
+    const newContent = content.substring(0, start) + before + content.substring(start, end) + after + content.substring(end);
     setContent(newContent);
     
-    // Focus back on the text field and set cursor position
+    // Set cursor position after insertion
     setTimeout(() => {
-      textField.focus();
-      const newPosition = start + before.length + text.length + after.length;
-      textField.setSelectionRange(
-        text ? start + before.length : newPosition,
-        text ? end + before.length : newPosition
-      );
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, end + before.length);
     }, 0);
   };
 
-  // Formatting functions
-  const formatBold = () => insertText('**', '**');
-  const formatItalic = () => insertText('*', '*');
-  const formatHeading = () => {
-    const { start } = getSelection();
-    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
-    const linePrefix = content.substring(lineStart, start);
+  // Helper function to wrap selected text
+  const wrapText = (textarea: HTMLTextAreaElement, before: string, after: string = '') => {
+    const { start, end, text } = getSelection(textarea);
+    const newContent = content.substring(0, start) + before + text + after + content.substring(end);
+    setContent(newContent);
     
-    // Check if line already starts with #
-    if (linePrefix.trim().startsWith('#')) {
-      // Add one more # to increase heading level
-      insertText('#', '');
-    } else {
-      // Add new heading
-      insertText('# ', '');
-    }
-  };
-  const formatCode = () => insertText('`', '`');
-  const formatCodeBlock = () => insertText('```\n', '\n```');
-  const formatLink = () => insertText('[', '](url)');
-  const formatImage = () => insertText('![alt text](', ')');
-  const formatBulletList = () => insertText('- ');
-  const formatNumberedList = () => insertText('1. ');
-  const formatQuote = () => insertText('> ');
-  const formatHorizontalRule = () => insertText('\n---\n');
-  const formatTaskList = () => insertText('- [ ] ');
-  const formatTable = () => {
-    insertText(
-      '| Header 1 | Header 2 | Header 3 |\n| --- | --- | --- |\n| Row 1, Col 1 | Row 1, Col 2 | Row 1, Col 3 |\n| Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3 |'
-    );
+    // Set cursor position after wrapping
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, start + before.length + text.length);
+    }, 0);
   };
 
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ctrl+B for bold
-    if (e.ctrlKey && e.key === 'b') {
-      e.preventDefault();
-      formatBold();
+  // Format functions
+  const formatBold = (textarea: HTMLTextAreaElement) => {
+    wrapText(textarea, '**', '**');
+  };
+
+  const formatItalic = (textarea: HTMLTextAreaElement) => {
+    wrapText(textarea, '_', '_');
+  };
+
+  const formatHeading = (textarea: HTMLTextAreaElement, level: number) => {
+    const prefix = '#'.repeat(level) + ' ';
+    const { start, end } = getSelection(textarea);
+    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+    
+    const beforeContent = content.substring(0, lineStart);
+    const lineContent = content.substring(lineStart, end);
+    const afterContent = content.substring(end);
+    
+    setContent(beforeContent + prefix + lineContent + afterContent);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(lineStart + prefix.length, end + prefix.length);
+    }, 0);
+  };
+
+  const formatCode = (textarea: HTMLTextAreaElement) => {
+    wrapText(textarea, '`', '`');
+  };
+
+  const formatCodeBlock = (textarea: HTMLTextAreaElement) => {
+    wrapText(textarea, '```\n', '\n```');
+  };
+
+  const formatLink = (textarea: HTMLTextAreaElement) => {
+    const { text } = getSelection(textarea);
+    if (text) {
+      wrapText(textarea, '[', '](url)');
+    } else {
+      insertText(textarea, '[text](url)');
     }
-    // Ctrl+I for italic
-    else if (e.ctrlKey && e.key === 'i') {
-      e.preventDefault();
-      formatItalic();
-    }
-    // Ctrl+K for link
-    else if (e.ctrlKey && e.key === 'k') {
-      e.preventDefault();
-      formatLink();
-    }
+  };
+
+  const formatImage = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '![alt text](image-url)');
+  };
+
+  const formatBulletList = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '- ');
+  };
+
+  const formatNumberedList = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '1. ');
+  };
+
+  const formatQuote = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '> ');
+  };
+
+  const formatHorizontalRule = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '\n---\n');
+  };
+  
+  const formatTaskList = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '- [ ] ');
+  };
+  
+  const formatTable = (textarea: HTMLTextAreaElement) => {
+    insertText(textarea, '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n');
   };
 
   return {
-    textFieldRef,
     formatBold,
     formatItalic,
     formatHeading,
@@ -120,6 +139,12 @@ export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProp
     formatHorizontalRule,
     formatTaskList,
     formatTable,
-    handleKeyDown
+    handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Handle tab key for indentation
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        insertText(e.currentTarget, '  ');
+      }
+    }
   };
 };

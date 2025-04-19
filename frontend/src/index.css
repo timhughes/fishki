@@ -12,3 +12,73 @@
   background: #f5f5f5;
   color: #333;
 }
+
+/* Cursor styles for resizing */
+body.resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.resizing * {
+  cursor: col-resize !important;
+}
+
+/* Resizer handle styles */
+.resizer-handle {
+  cursor: col-resize;
+  background-color: rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.resizer-handle:hover,
+.resizer-handle:active {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure code blocks don't overflow and are scrollable */
+.markdown-content pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Ensure tables are properly contained */
+.markdown-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+/* Ensure images don't overflow their containers */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make the editor and preview take full height */
+.MuiBox-root {
+  box-sizing: border-box;
+}
+
+/* Ensure the editor textarea expands properly */
+.MuiInputBase-root.MuiOutlinedInput-root {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: auto !important; /* Parent handles scrolling */
+}
+
+.MuiInputBase-root.MuiOutlinedInput-root textarea {
+  flex: 1 !important;
+  overflow: hidden !important; /* Completely disable textarea scrolling */
+}
+
+/* Fix for MUI TextField scrolling issues */
+.MuiOutlinedInput-root.MuiInputBase-multiline {
+  padding: 0 !important;
+}
+
+.MuiOutlinedInput-root.MuiInputBase-multiline textarea {
+  padding: 14px !important;
+  overflow: hidden !important; /* Completely disable textarea scrolling */
+}
