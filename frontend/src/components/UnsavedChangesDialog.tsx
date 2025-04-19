@@ -34,10 +34,10 @@ export const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} color="primary">
+        <Button onClick={onCancel} color="primary" size="small">
           Cancel
         </Button>
-        <Button onClick={onContinue} color="error" variant="contained">
+        <Button onClick={onContinue} color="error" variant="contained" size="small">
           Discard Changes
         </Button>
       </DialogActions>

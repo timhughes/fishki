@@ -88,8 +88,8 @@ export const NewPageDialog: React.FC<NewPageDialogProps> = ({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleConfirm} variant="contained" color="primary">
+        <Button onClick={onClose} size="small">Cancel</Button>
+        <Button onClick={handleConfirm} variant="contained" color="primary" size="small">
           Create
         </Button>
       </DialogActions>

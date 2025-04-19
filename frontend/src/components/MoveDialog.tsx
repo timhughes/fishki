@@ -179,6 +179,7 @@ export const MoveDialog: React.FC<MoveDialogProps> = ({
           onClick={onCancel}
           disabled={moving}
           color="inherit"
+          size="small"
         >
           Cancel
         </Button>
@@ -187,7 +188,8 @@ export const MoveDialog: React.FC<MoveDialogProps> = ({
           disabled={moving || !!validationError || loadingFolders}
           color="primary"
           variant="contained"
-          startIcon={moving ? <CircularProgress size={20} /> : <MoveIcon />}
+          startIcon={moving ? <CircularProgress size={16} /> : <MoveIcon />}
+          size="small"
         >
           {moving ? 'Moving...' : 'Move'}
         </Button>

@@ -74,6 +74,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           onClick={onCancel}
           disabled={deleting}
           color="inherit"
+          size="small"
         >
           Cancel
         </Button>
@@ -82,7 +83,8 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           disabled={deleting}
           color="error"
           variant="contained"
-          startIcon={deleting ? <CircularProgress size={20} /> : <DeleteIcon />}
+          startIcon={deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+          size="small"
         >
           {deleting ? 'Deleting...' : 'Delete'}
         </Button>
