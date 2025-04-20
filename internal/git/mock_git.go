@@ -22,6 +22,10 @@ func (m *MockGitClient) Push(path string) error {
 	return nil
 }
 
+func (m *MockGitClient) Fetch(path string) error {
+	return nil
+}
+
 func (m *MockGitClient) Status(path string) (string, error) {
 	return "mock status", nil
 }

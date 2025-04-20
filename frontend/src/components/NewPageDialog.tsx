@@ -6,7 +6,6 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import { formatISO } from 'date-fns';
 
 interface NewPageDialogProps {
   open: boolean;
@@ -25,8 +24,14 @@ export const NewPageDialog: React.FC<NewPageDialogProps> = ({
   const getDefaultPageName = () => {
     // Format: YYYY-MM-DDTHH-mm-ss (using hyphens instead of colons for filename compatibility)
     const now = new Date();
-    const isoDate = formatISO(now).replace(/:/g, '-').replace(/\.\d+Z$/, '');
-    return isoDate;
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
   };
 
   const [pageName, setPageName] = useState(getDefaultPageName());

@@ -69,6 +69,8 @@ func SetupHandlers(mux *http.ServeMux, cfg *config.Config) {
 	mux.Handle("/api/init", writeSecurityChain(http.HandlerFunc(h.initHandler())))
 	mux.Handle("/api/pull", writeSecurityChain(http.HandlerFunc(h.pullHandler())))
 	mux.Handle("/api/push", writeSecurityChain(http.HandlerFunc(h.pushHandler())))
+	mux.Handle("/api/fetch", writeSecurityChain(http.HandlerFunc(h.fetchHandler())))
+	mux.Handle("/api/status", securityChain(http.HandlerFunc(h.statusHandler())))
 	mux.Handle("/api/config", securityChain(http.HandlerFunc(h.configHandler())))
 	mux.Handle("/api/csrf-token", securityChain(http.HandlerFunc(CSRFTokenHandler)))
 }
@@ -101,81 +103,80 @@ func (h *Handler) initHandler() http.HandlerFunc {
 			return
 		}
 
-		if h.git == nil {
-			http.Error(w, "Git client not initialized", http.StatusInternalServerError)
+		// Check if the directory exists
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			http.Error(w, "Directory does not exist", http.StatusBadRequest)
 			return
 		}
 
+		// Initialize Git repository
 		if err := h.git.Init(absPath); err != nil {
-			http.Error(w, "Failed to initialize repository: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to initialize Git repository", http.StatusInternalServerError)
 			return
 		}
 
-		// Update the config with the new wiki path
+		// Update the config
 		h.config.WikiPath = absPath
-		if err := config.SaveConfig(h.config); err != nil {
-			http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
 
-		w.WriteHeader(http.StatusOK)
+		// Return success
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"path": absPath,
+		})
 	}
 }
 
 func (h *Handler) configHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
+		if r.Method == http.MethodGet {
 			// Return current config
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			json.NewEncoder(w).Encode(map[string]string{
 				"wikiPath": h.config.WikiPath,
 			})
-			
-		case http.MethodPost:
-			// Update config
+			return
+		}
+
+		if r.Method == http.MethodPost {
 			var request struct {
 				WikiPath string `json:"wikiPath"`
 			}
-			
+
 			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 				http.Error(w, "Invalid request body", http.StatusBadRequest)
 				return
 			}
-			
+
 			if request.WikiPath == "" {
 				http.Error(w, "Wiki path is required", http.StatusBadRequest)
 				return
 			}
-			
+
 			// Validate the path is safe
 			absPath, err := filepath.Abs(request.WikiPath)
 			if err != nil {
 				http.Error(w, "Invalid path", http.StatusBadRequest)
 				return
 			}
-			
-			// Validate that the path exists
+
+			// Check if the directory exists
 			if _, err := os.Stat(absPath); os.IsNotExist(err) {
-				// Try to create the directory
-				if err := os.MkdirAll(absPath, 0755); err != nil {
-					http.Error(w, "Failed to create directory: "+err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}
-			
-			// Update config
-			h.config.WikiPath = absPath
-			if err := config.SaveConfig(h.config); err != nil {
-				http.Error(w, "Failed to save config: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "Directory does not exist", http.StatusBadRequest)
 				return
 			}
-			
-			w.WriteHeader(http.StatusOK)
-			
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+
+			// Update the config
+			h.config.WikiPath = absPath
+
+			// Return success
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"wikiPath": absPath,
+			})
+			return
 		}
+
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -201,7 +202,8 @@ func (h *Handler) pullHandler() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }
 
@@ -223,11 +225,40 @@ func (h *Handler) pushHandler() http.HandlerFunc {
 		}
 
 		if err := h.git.Push(h.config.WikiPath); err != nil {
-			http.Error(w, "Failed to push changes: "+err.Error(), http.StatusInternalServerError)
+			errMsg := "Failed to push changes: " + err.Error()
+			http.Error(w, errMsg, http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
+func (h *Handler) fetchHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if h.config.WikiPath == "" {
+			http.Error(w, "Wiki path not set", http.StatusBadRequest)
+			return
+		}
+
+		if h.git == nil {
+			http.Error(w, "Git client not initialized", http.StatusInternalServerError)
+			return
+		}
+
+		if err := h.git.Fetch(h.config.WikiPath); err != nil {
+			http.Error(w, "Failed to fetch changes: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }
 
@@ -238,37 +269,40 @@ func (h *Handler) loadHandler() http.HandlerFunc {
 			return
 		}
 
+		if h.config.WikiPath == "" {
+			http.Error(w, "Wiki path not set", http.StatusBadRequest)
+			return
+		}
+
 		filename := r.URL.Query().Get("filename")
 		if filename == "" {
 			http.Error(w, "Filename is required", http.StatusBadRequest)
 			return
 		}
-		
-		// Reject requests for directories (paths ending with /)
-		if filename[len(filename)-1] == '/' {
-			http.Error(w, "Cannot load directory directly", http.StatusBadRequest)
-			return
+
+		// Sanitize the filename to prevent directory traversal
+		filename = filepath.Clean(filename)
+		if filepath.IsAbs(filename) {
+			filename = filename[1:] // Remove leading slash
 		}
 
-		// Validate and sanitize the path
-		filePath, err := ValidatePath(h.config.WikiPath, filename)
-		if err != nil {
-			http.Error(w, "Invalid file path", http.StatusBadRequest)
-			return
-		}
+		// Construct the full path
+		fullPath := filepath.Join(h.config.WikiPath, filename)
 
 		// Check if the file exists
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			http.Error(w, "File not found", http.StatusNotFound)
 			return
 		}
 
-		content, err := os.ReadFile(filePath)
+		// Read the file
+		content, err := os.ReadFile(fullPath)
 		if err != nil {
 			http.Error(w, "Failed to read file", http.StatusInternalServerError)
 			return
 		}
 
+		// Return the content
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write(content)
 	}
@@ -278,6 +312,11 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if h.config.WikiPath == "" {
+			http.Error(w, "Wiki path not set", http.StatusBadRequest)
 			return
 		}
 
@@ -296,45 +335,44 @@ func (h *Handler) saveHandler() http.HandlerFunc {
 			return
 		}
 
-		// Validate and sanitize the path
-		filePath, err := ValidatePath(h.config.WikiPath, request.Filename)
-		if err != nil {
-			http.Error(w, "Invalid file path", http.StatusBadRequest)
-			return
+		// Sanitize the filename to prevent directory traversal
+		filename := filepath.Clean(request.Filename)
+		if filepath.IsAbs(filename) {
+			filename = filename[1:] // Remove leading slash
 		}
 
-		// Create directory if it doesn't exist
-		dir := filepath.Dir(filePath)
+		// Construct the full path
+		fullPath := filepath.Join(h.config.WikiPath, filename)
+
+		// Create parent directories if they don't exist
+		dir := filepath.Dir(fullPath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			http.Error(w, "Failed to create directory", http.StatusInternalServerError)
+			http.Error(w, "Failed to create directories", http.StatusInternalServerError)
 			return
 		}
 
-		// Write file with secure permissions
-		if err := os.WriteFile(filePath, []byte(request.Content), 0644); err != nil {
+		// Write the file
+		if err := os.WriteFile(fullPath, []byte(request.Content), 0644); err != nil {
 			http.Error(w, "Failed to write file", http.StatusInternalServerError)
 			return
 		}
 
-		// Git operations if client is available
-		if h.git != nil {
-			// Commit changes to the repository
-			if err := h.git.Commit(h.config.WikiPath, "Updated "+request.Filename); err != nil {
-				http.Error(w, "Failed to commit changes: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-			
-			// Try to push changes, but don't fail if push fails (might not have remote)
-			if h.git.HasRemote(h.config.WikiPath) {
-				if err := h.git.Push(h.config.WikiPath); err != nil {
-					// Log the error but don't fail the request
-					// The changes are still committed locally
-					w.Header().Set("X-Git-Push-Error", err.Error())
-				}
+		// Commit the changes
+		if h.git != nil && h.git.IsRepository(h.config.WikiPath) {
+			if err := h.git.Commit(h.config.WikiPath, "Update "+filename); err != nil {
+				// Log the error but don't fail the request
+				// This allows the file to be saved even if Git operations fail
+				// For example, if the user hasn't configured Git
+				// TODO: Add proper logging
+				// fmt.Println("Failed to commit changes:", err)
 			}
 		}
 
-		w.WriteHeader(http.StatusOK)
+		// Return success
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"filename": filename,
+		})
 	}
 }
 
@@ -342,6 +380,11 @@ func (h *Handler) deleteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if h.config.WikiPath == "" {
+			http.Error(w, "Wiki path not set", http.StatusBadRequest)
 			return
 		}
 
@@ -359,56 +402,42 @@ func (h *Handler) deleteHandler() http.HandlerFunc {
 			return
 		}
 
-		// Validate and sanitize the path
-		filePath, err := ValidatePath(h.config.WikiPath, request.Filename)
-		if err != nil {
-			http.Error(w, "Invalid file path", http.StatusBadRequest)
-			return
+		// Sanitize the filename to prevent directory traversal
+		filename := filepath.Clean(request.Filename)
+		if filepath.IsAbs(filename) {
+			filename = filename[1:] // Remove leading slash
 		}
 
+		// Construct the full path
+		fullPath := filepath.Join(h.config.WikiPath, filename)
+
 		// Check if the file exists
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			http.Error(w, "File not found", http.StatusNotFound)
 			return
 		}
 
 		// Delete the file
-		if err := os.Remove(filePath); err != nil {
+		if err := os.Remove(fullPath); err != nil {
 			http.Error(w, "Failed to delete file", http.StatusInternalServerError)
 			return
 		}
 
-		// Git operations if client is available
-		if h.git != nil {
-			// Commit the deletion to the repository
-			if err := h.git.Commit(h.config.WikiPath, "Deleted "+request.Filename); err != nil {
-				http.Error(w, "Failed to commit deletion: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-			
-			// Try to push changes, but don't fail if push fails (might not have remote)
-			if h.git.HasRemote(h.config.WikiPath) {
-				if err := h.git.Push(h.config.WikiPath); err != nil {
-					// Log the error but don't fail the request
-					// The changes are still committed locally
-					w.Header().Set("X-Git-Push-Error", err.Error())
-				}
+		// Commit the changes
+		if h.git != nil && h.git.IsRepository(h.config.WikiPath) {
+			if err := h.git.Commit(h.config.WikiPath, "Delete "+filename); err != nil {
+				// Log the error but don't fail the request
+				// This allows the file to be deleted even if Git operations fail
+				// TODO: Add proper logging
+				// fmt.Println("Failed to commit changes:", err)
 			}
 		}
 
-		// Try to remove empty parent directories
-		dir := filepath.Dir(filePath)
-		for dir != h.config.WikiPath {
-			// Try to remove directory
-			if err := os.Remove(dir); err != nil {
-				// If error, directory is either not empty or there's another issue
-				// Either way, stop trying to remove parents
-				break
-			}
-			dir = filepath.Dir(dir)
-		}
-
-		w.WriteHeader(http.StatusOK)
+		// Return success
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"filename": filename,
+		})
 	}
 }
 

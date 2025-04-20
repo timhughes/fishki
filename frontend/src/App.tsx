@@ -16,6 +16,7 @@ import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { NavigationBlocker } from './components/NavigationBlocker';
 import { SetupWizard } from './components/SetupWizard';
 import { ThemeToggle } from './components/ThemeToggle';
+import { GitStatusBar } from './components/GitStatusBar';
 import { useTheme } from './contexts/ThemeContext';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
@@ -353,6 +354,7 @@ function AppContent() {
             <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
               Fishki Wiki
             </Typography>
+            <GitStatusBar />
             <ThemeToggle />
           </Toolbar>
         </AppBar>

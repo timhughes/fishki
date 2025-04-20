@@ -11,7 +11,36 @@ jest.mock('../api/client', () => ({
     render: jest.fn().mockResolvedValue(''),
     getConfig: jest.fn().mockResolvedValue({ wikiPath: '/test/wiki/path' }),
     setConfig: jest.fn().mockResolvedValue({}),
-    init: jest.fn().mockResolvedValue({})
+    init: jest.fn().mockResolvedValue({}),
+    pull: jest.fn().mockResolvedValue({}),
+    push: jest.fn().mockResolvedValue({}),
+    fetch: jest.fn().mockResolvedValue({}),
+    getStatus: jest.fn().mockResolvedValue({
+      branch: 'main',
+      ahead: 0,
+      behind: 0,
+      modified: 0,
+      untracked: 0
+    })
+  }
+}));
+
+// Mock the gitApi
+jest.mock('../api/gitApi', () => ({
+  gitApi: {
+    getStatus: jest.fn().mockResolvedValue({
+      hasRemote: true,
+      branchName: 'main',
+      aheadCount: 0,
+      behindCount: 0,
+      modifiedCount: 0,
+      untrackedCount: 0,
+      lastFetched: Date.now()
+    }),
+    pull: jest.fn().mockResolvedValue({}),
+    push: jest.fn().mockResolvedValue({}),
+    fetch: jest.fn().mockResolvedValue({}),
+    shouldFetch: jest.fn().mockReturnValue(false)
   }
 }));
 
@@ -55,6 +84,16 @@ jest.mock('../components/PageBrowser', () => ({
   PageBrowser: () => <div data-testid="page-browser">Page Browser</div>
 }));
 
+// Mock GitStatusBar
+jest.mock('../components/GitStatusBar', () => ({
+  GitStatusBar: () => <div data-testid="git-status-bar">Git Status</div>
+}));
+
+// Mock NewPageDialog
+jest.mock('../components/NewPageDialog', () => ({
+  NewPageDialog: () => <div data-testid="new-page-dialog">New Page Dialog</div>
+}));
+
 // Mock lazy-loaded components
 jest.mock('../components/MarkdownViewer', () => ({
   MarkdownViewer: () => <div>Markdown Viewer</div>
@@ -66,6 +105,11 @@ jest.mock('../components/MarkdownEditor', () => ({
 
 jest.mock('../components/CreatePage', () => ({
   CreatePage: () => <div>Create Page</div>
+}));
+
+// Mock date-fns
+jest.mock('date-fns', () => ({
+  formatDistanceToNow: jest.fn().mockReturnValue('5 minutes')
 }));
 
 test('renders without crashing', async () => {

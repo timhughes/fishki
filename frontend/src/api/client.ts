@@ -125,6 +125,24 @@ export class ApiClient {
     return this.request('/api/status');
   }
 
+  async pull() {
+    return this.request('/api/pull', {
+      method: 'POST',
+    });
+  }
+
+  async push() {
+    return this.request('/api/push', {
+      method: 'POST',
+    });
+  }
+
+  async fetch() {
+    return this.request('/api/fetch', {
+      method: 'POST',
+    });
+  }
+
   async render(markdown: string) {
     return this.request('/api/render', {
       method: 'POST',

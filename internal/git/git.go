@@ -1,176 +1,157 @@
 package git
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-// GitClient defines the interface for Git operations
 type GitClient interface {
-	Init(repoPath string) error
-	Commit(repoPath, message string) error
-	Push(repoPath string) error
-	Pull(repoPath string) error
-	Status(repoPath string) (string, error)
-	IsRepository(path string) bool
+	Init(path string) error
+	Commit(path, message string) error
+	Pull(path string) error
+	Push(path string) error
+	Fetch(path string) error
+	Status(path string) (string, error)
 	HasRemote(path string) bool
+	IsRepository(path string) bool
 }
 
-// DefaultGitClient is the default implementation of GitClient
 type DefaultGitClient struct{}
 
-// New creates a new DefaultGitClient
 func New() GitClient {
 	return &DefaultGitClient{}
 }
 
-func (c *DefaultGitClient) IsRepository(path string) bool {
-	_, err := os.Stat(filepath.Join(path, ".git"))
-	return err == nil
-}
-
-func (c *DefaultGitClient) HasRemote(path string) bool {
-	cmd := exec.Command("git", "remote")
-	cmd.Dir = path
-	out, err := cmd.CombinedOutput()
-	return err == nil && len(strings.TrimSpace(string(out))) > 0
-}
-
-func (c *DefaultGitClient) Init(repoPath string) error {
-	if c.IsRepository(repoPath) {
-		return nil // Already initialized
-	}
-
-	// Use exec.Command instead of shell execution to prevent command injection
+func (g *DefaultGitClient) Init(path string) error {
 	cmd := exec.Command("git", "init")
-	cmd.Dir = repoPath
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return &ErrGitOperation{Op: "init", Err: err, Out: string(out)}
-	}
-	return nil
+	cmd.Dir = path
+	return cmd.Run()
 }
 
-func (c *DefaultGitClient) Commit(repoPath, message string) error {
-	if !c.IsRepository(repoPath) {
-		return &ErrNotRepository{Path: repoPath}
-	}
-
-	// Add all changes
-	cmd := exec.Command("git", "add", ".")
-	cmd.Dir = repoPath
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return &ErrGitOperation{Op: "add", Err: err, Out: string(out)}
-	}
-
-	// Check if there are changes to commit
-	clean, err := c.Status(repoPath)
-	if err != nil {
+func (g *DefaultGitClient) Commit(path, message string) error {
+	// Add all files
+	addCmd := exec.Command("git", "add", ".")
+	addCmd.Dir = path
+	if err := addCmd.Run(); err != nil {
 		return err
 	}
-	if len(clean) == 0 {
-		return nil // Nothing to commit
-	}
 
-	// Sanitize commit message to prevent command injection
-	sanitizedMessage := sanitizeGitMessage(message)
+	// Commit with message
+	commitCmd := exec.Command("git", "commit", "-m", message)
+	commitCmd.Dir = path
+	return commitCmd.Run()
+}
+
+func (g *DefaultGitClient) Pull(path string) error {
+	cmd := exec.Command("git", "pull", "--rebase")
+	cmd.Dir = path
 	
-	// Commit changes using array arguments to prevent shell injection
-	cmd = exec.Command("git", "commit", "-m", sanitizedMessage)
-	cmd.Dir = repoPath
-	out, err = cmd.CombinedOutput()
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	
+	err := cmd.Run()
 	if err != nil {
-		return &ErrGitOperation{Op: "commit", Err: err, Out: string(out)}
+		return fmt.Errorf("%s: %s", err.Error(), stderr.String())
 	}
+	
 	return nil
 }
 
-func (c *DefaultGitClient) Pull(repoPath string) error {
-	if !c.IsRepository(repoPath) {
-		return &ErrNotRepository{Path: repoPath}
+func (g *DefaultGitClient) Push(path string) error {
+	// First check if there's a remote configured
+	if !g.HasRemote(path) {
+		return fmt.Errorf("no remote repository configured")
 	}
-
-	if !c.HasRemote(repoPath) {
-		return &ErrNoRemote{Path: repoPath}
+	
+	// Then check if the current branch has an upstream branch
+	checkUpstreamCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	checkUpstreamCmd.Dir = path
+	
+	var upstreamStderr bytes.Buffer
+	checkUpstreamCmd.Stderr = &upstreamStderr
+	
+	if err := checkUpstreamCmd.Run(); err != nil {
+		// If there's no upstream branch, suggest setting it up
+		branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+		branchCmd.Dir = path
+		branchBytes, branchErr := branchCmd.Output()
+		
+		if branchErr == nil {
+			branch := strings.TrimSpace(string(branchBytes))
+			remoteCmd := exec.Command("git", "remote")
+			remoteCmd.Dir = path
+			remoteBytes, remoteErr := remoteCmd.Output()
+			
+			if remoteErr == nil && len(remoteBytes) > 0 {
+				remote := strings.TrimSpace(string(remoteBytes))
+				return fmt.Errorf("no upstream branch configured. Try: git push --set-upstream %s %s", remote, branch)
+			}
+		}
+		
+		return fmt.Errorf("no upstream branch configured: %s", upstreamStderr.String())
 	}
-
-	// Check for uncommitted changes
-	clean, err := c.Status(repoPath)
-	if err != nil {
-		return err
-	}
-	if len(clean) > 0 {
-		return &ErrUncleanWorkingDir{Path: repoPath}
-	}
-
-	cmd := exec.Command("git", "pull")
-	cmd.Dir = repoPath
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return &ErrGitOperation{Op: "pull", Err: err, Out: string(out)}
-	}
-	return nil
-}
-
-func (c *DefaultGitClient) Push(repoPath string) error {
-	if !c.IsRepository(repoPath) {
-		return &ErrNotRepository{Path: repoPath}
-	}
-
-	if !c.HasRemote(repoPath) {
-		return &ErrNoRemote{Path: repoPath}
-	}
-
-	// Check for uncommitted changes
-	clean, err := c.Status(repoPath)
-	if err != nil {
-		return err
-	}
-	if len(clean) > 0 {
-		return &ErrUncleanWorkingDir{Path: repoPath}
-	}
-
+	
+	// Now try to push
 	cmd := exec.Command("git", "push")
-	cmd.Dir = repoPath
-	out, err := cmd.CombinedOutput()
+	cmd.Dir = path
+	
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	
+	err := cmd.Run()
 	if err != nil {
-		return &ErrGitOperation{Op: "push", Err: err, Out: string(out)}
+		return fmt.Errorf("%s: %s", err.Error(), stderr.String())
 	}
+	
 	return nil
 }
 
-func (c *DefaultGitClient) Status(repoPath string) (string, error) {
-	if !c.IsRepository(repoPath) {
-		return "", &ErrNotRepository{Path: repoPath}
+func (g *DefaultGitClient) Fetch(path string) error {
+	cmd := exec.Command("git", "fetch")
+	cmd.Dir = path
+	
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("%s: %s", err.Error(), stderr.String())
 	}
+	
+	return nil
+}
 
+func (g *DefaultGitClient) Status(path string) (string, error) {
 	cmd := exec.Command("git", "status", "--porcelain")
-	cmd.Dir = repoPath
+	cmd.Dir = path
 	output, err := cmd.Output()
 	if err != nil {
-		return "", &ErrGitOperation{Op: "status", Err: err, Out: string(output)}
+		return "", err
 	}
-
 	return string(output), nil
 }
 
-// sanitizeGitMessage removes potentially dangerous characters from git commit messages
-func sanitizeGitMessage(message string) string {
-	// Remove characters that could be used for command injection
-	unsafe := []string{";", "&", "|", ">", "<", "`", "$", "(", ")", "{", "}", "[", "]", "\\", "\n", "\r"}
-	result := message
-	
-	for _, char := range unsafe {
-		result = strings.ReplaceAll(result, char, "")
+func (g *DefaultGitClient) HasRemote(path string) bool {
+	// Check if the repository has a remote configured
+	cmd := exec.Command("git", "remote")
+	cmd.Dir = path
+	output, err := cmd.Output()
+	if err != nil {
+		return false
 	}
-	
-	// Limit length to prevent buffer overflows
-	if len(result) > 100 {
-		result = result[:100]
+	return len(output) > 0
+}
+
+func (g *DefaultGitClient) IsRepository(path string) bool {
+	// Check if the directory is a git repository
+	gitDir := filepath.Join(path, ".git")
+	info, err := os.Stat(gitDir)
+	if err != nil {
+		return false
 	}
-	
-	return result
+	return info.IsDir()
 }
