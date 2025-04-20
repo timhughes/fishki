@@ -298,6 +298,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 10,
+              transform: 'translateX(-4px)',
             }}
             onMouseDown={(e) => {
               e.preventDefault();
@@ -322,7 +323,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               document.addEventListener('mouseup', handleMouseUp);
             }}
           >
-            <DragHandleIcon sx={{ color: 'text.secondary', fontSize: '1rem' }} />
+            <DragHandleIcon sx={{ transform: 'rotate(90deg)',color: 'text.secondary', fontSize: '1rem' }} />
           </Box>
         )}
         
