@@ -217,6 +217,11 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
               onClick={handlePull}
               disabled={isPulling || status.behindCount === 0}
               color={status.behindCount > 0 ? "primary" : "inherit"}
+              aria-label={status.behindCount > 0 
+                ? `Pull ${status.behindCount} commit${status.behindCount !== 1 ? 's' : ''}` 
+                : 'No changes to pull'
+              }
+              data-testid="pull-button"
               sx={{ 
                 mx: 0.5,
                 opacity: status.behindCount > 0 ? 1 : 0.5,
@@ -260,6 +265,11 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
               onClick={handlePush}
               disabled={isPushing || status.aheadCount === 0}
               color={status.aheadCount > 0 ? "primary" : "inherit"}
+              aria-label={status.aheadCount > 0 
+                ? `Push ${status.aheadCount} commit${status.aheadCount !== 1 ? 's' : ''}` 
+                : 'No changes to push'
+              }
+              data-testid="push-button"
               sx={{ 
                 mx: 0.5,
                 opacity: status.aheadCount > 0 ? 1 : 0.5,

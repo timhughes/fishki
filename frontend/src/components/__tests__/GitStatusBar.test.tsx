@@ -62,9 +62,10 @@ describe('GitStatusBar', () => {
       expect(screen.getByText('main')).toBeInTheDocument();
     });
     
-    // Find the pull button (it has a tooltip with "Pull 2 commits")
-    const pullButton = await screen.findByRole('button', { name: /pull 2 commits/i });
+    // Find the pull button using the data-testid
+    const pullButton = await screen.findByTestId('pull-button');
     expect(pullButton).toBeInTheDocument();
+    expect(pullButton).toHaveAttribute('aria-label', 'Pull 2 commits');
   });
 
   test('shows push button when ahead of remote', async () => {
@@ -84,9 +85,10 @@ describe('GitStatusBar', () => {
       expect(screen.getByText('main')).toBeInTheDocument();
     });
     
-    // Find the push button (it has a tooltip with "Push 3 commits")
-    const pushButton = await screen.findByRole('button', { name: /push 3 commits/i });
+    // Find the push button using the data-testid
+    const pushButton = await screen.findByTestId('push-button');
     expect(pushButton).toBeInTheDocument();
+    expect(pushButton).toHaveAttribute('aria-label', 'Push 3 commits');
   });
 
   test('shows local changes indicator', async () => {
@@ -149,8 +151,8 @@ describe('GitStatusBar', () => {
       expect(screen.getByText('main')).toBeInTheDocument();
     });
     
-    // Find and click the pull button
-    const pullButton = await screen.findByRole('button', { name: /pull 2 commits/i });
+    // Find and click the pull button using data-testid
+    const pullButton = await screen.findByTestId('pull-button');
     fireEvent.click(pullButton);
     
     // Verify pull was called
@@ -179,8 +181,8 @@ describe('GitStatusBar', () => {
       expect(screen.getByText('main')).toBeInTheDocument();
     });
     
-    // Find and click the push button
-    const pushButton = await screen.findByRole('button', { name: /push 3 commits/i });
+    // Find and click the push button using data-testid
+    const pushButton = await screen.findByTestId('push-button');
     fireEvent.click(pushButton);
     
     // Verify push was called
