@@ -1,7 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GitStatusBar } from '../GitStatusBar';
 import { gitApi } from '../../api/gitApi';
-import { format } from 'date-fns';
 
 // Mock the gitApi
 jest.mock('../../api/gitApi', () => ({

@@ -1,4 +1,5 @@
 import { api } from './client';
+import logger from '../utils/logger';
 
 export interface RemoteStatus {
   hasRemote: boolean;
@@ -32,7 +33,7 @@ class GitApi {
         lastFetched: this.lastFetchTime
       };
     } catch (error) {
-      console.error('Failed to fetch Git status:', error);
+      logger.error('Failed to fetch Git status', error, 'GitApi');
       this.errorRetryCount++;
       
       // Return a default status if we can't fetch
@@ -56,7 +57,7 @@ class GitApi {
       // Reset error counter on success
       this.errorRetryCount = 0;
     } catch (error) {
-      console.error('Failed to pull:', error);
+      logger.error('Failed to pull from remote', error, 'GitApi');
       this.errorRetryCount++;
       throw error;
     }
@@ -68,7 +69,7 @@ class GitApi {
       // Reset error counter on success
       this.errorRetryCount = 0;
     } catch (error) {
-      console.error('Failed to push:', error);
+      logger.error('Failed to push to remote', error, 'GitApi');
       this.errorRetryCount++;
       throw error;
     }
@@ -81,7 +82,7 @@ class GitApi {
       // Reset error counter on success
       this.errorRetryCount = 0;
     } catch (error) {
-      console.error('Failed to fetch:', error);
+      logger.error('Failed to fetch from remote', error, 'GitApi');
       this.errorRetryCount++;
       throw error;
     }

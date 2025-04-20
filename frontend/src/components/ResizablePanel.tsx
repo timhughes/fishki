@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
+import logger from '../utils/logger';
 
 interface ResizablePanelProps {
   initialWidth: number;
@@ -35,7 +36,8 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
       // Also set a CSS variable to use for the main content margin
       document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
     } catch (e) {
-      console.error('Failed to save panel width to localStorage:', e);
+      // Failed to save panel width
+      logger.warn('Failed to save panel width to localStorage', e, 'ResizablePanel');
     }
   }, [width, storageKey]);
 

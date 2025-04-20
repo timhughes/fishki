@@ -18,6 +18,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { FileInfo } from '../types/api';
 import { api } from '../api/client';
 import { useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
 interface PageBrowserProps {
   onFileSelect: (path: string) => void;
@@ -56,7 +57,8 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
         setExpandedFolders(JSON.parse(savedExpandedFolders));
       }
     } catch (err) {
-      console.error('Failed to load expanded folders state:', err);
+      // Failed to load expanded folders state, use default
+      logger.warn('Failed to load expanded folders state', err, 'PageBrowser');
     }
   }, []);
 
@@ -65,7 +67,8 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
     try {
       localStorage.setItem('fishki-expanded-folders', JSON.stringify(expandedFolders));
     } catch (err) {
-      console.error('Failed to save expanded folders state:', err);
+      // Failed to save expanded folders state
+      logger.warn('Failed to save expanded folders state', err, 'PageBrowser');
     }
   }, [expandedFolders]);
 
@@ -91,6 +94,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
         }
       } catch (err) {
         setError('Failed to load configuration');
+        logger.error('Failed to load configuration', err, 'PageBrowser');
         setLoading(false);
         return;
       }
@@ -100,6 +104,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
       setError(undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load files');
+      logger.error('Failed to load files', err, 'PageBrowser');
     } finally {
       setLoading(false);
     }

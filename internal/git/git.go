@@ -33,6 +33,10 @@ func (g *DefaultGitClient) Init(path string) error {
 }
 
 func (g *DefaultGitClient) Commit(path, message string) error {
+	if !g.IsRepository(path) {
+		return &ErrNotRepository{Path: path}
+	}
+	
 	// Add all files
 	addCmd := exec.Command("git", "add", ".")
 	addCmd.Dir = path
@@ -47,6 +51,11 @@ func (g *DefaultGitClient) Commit(path, message string) error {
 }
 
 func (g *DefaultGitClient) Pull(path string) error {
+	// First check if there's a remote configured
+	if !g.HasRemote(path) {
+		return &ErrNoRemote{Path: path}
+	}
+	
 	cmd := exec.Command("git", "pull", "--rebase")
 	cmd.Dir = path
 	
@@ -64,7 +73,7 @@ func (g *DefaultGitClient) Pull(path string) error {
 func (g *DefaultGitClient) Push(path string) error {
 	// First check if there's a remote configured
 	if !g.HasRemote(path) {
-		return fmt.Errorf("no remote repository configured")
+		return &ErrNoRemote{Path: path}
 	}
 	
 	// Then check if the current branch has an upstream branch
@@ -126,6 +135,10 @@ func (g *DefaultGitClient) Fetch(path string) error {
 }
 
 func (g *DefaultGitClient) Status(path string) (string, error) {
+	if !g.IsRepository(path) {
+		return "", &ErrNotRepository{Path: path}
+	}
+	
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = path
 	output, err := cmd.Output()

@@ -423,6 +423,28 @@ func (h *Handler) deleteHandler() http.HandlerFunc {
 			return
 		}
 
+		// Clean up empty parent directories
+		parentDir := filepath.Dir(fullPath)
+		for parentDir != h.config.WikiPath {
+			// Check if directory is empty
+			entries, err := os.ReadDir(parentDir)
+			if err != nil {
+				break // Stop if we can't read the directory
+			}
+			
+			if len(entries) > 0 {
+				break // Stop if directory is not empty
+			}
+			
+			// Remove empty directory
+			if err := os.Remove(parentDir); err != nil {
+				break // Stop if we can't remove the directory
+			}
+			
+			// Move up to the next parent
+			parentDir = filepath.Dir(parentDir)
+		}
+
 		// Commit the changes
 		if h.git != nil && h.git.IsRepository(h.config.WikiPath) {
 			if err := h.git.Commit(h.config.WikiPath, "Delete "+filename); err != nil {

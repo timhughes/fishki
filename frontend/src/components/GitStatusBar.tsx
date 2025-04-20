@@ -8,6 +8,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorIcon from '@mui/icons-material/Error';
+import logger from '../utils/logger';
 import GitBranchIcon from '@mui/icons-material/ForkRight';
 import Typography from '@mui/material/Typography';
 import { gitApi, RemoteStatus } from '../api/gitApi';
@@ -40,8 +41,8 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
         handleFetch(true); // Silent fetch
       }
     } catch (err) {
-      console.error('Failed to fetch Git status:', err);
       setError('Failed to fetch Git status');
+      logger.error('Failed to fetch Git status in component', err, 'GitStatusBar');
     } finally {
       setLoading(false);
     }
@@ -69,8 +70,8 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
       await gitApi.pull();
       await fetchStatus();
     } catch (err: any) {
-      console.error('Failed to pull:', err);
       setError('Pull failed: ' + (err?.message || 'Unknown error'));
+      logger.error('Pull operation failed', err, 'GitStatusBar');
     } finally {
       setIsPulling(false);
     }
@@ -86,8 +87,8 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
       await gitApi.push();
       await fetchStatus();
     } catch (err: any) {
-      console.error('Failed to push:', err);
       setError('Push failed: ' + (err?.message || 'Unknown error'));
+      logger.error('Push operation failed', err, 'GitStatusBar');
     } finally {
       setIsPushing(false);
     }
@@ -103,10 +104,10 @@ export const GitStatusBar: React.FC<GitStatusBarProps> = ({
       await gitApi.fetch();
       await fetchStatus();
     } catch (err: any) {
-      console.error('Failed to fetch:', err);
       if (!silent) {
         setError('Fetch failed: ' + (err?.message || 'Unknown error'));
       }
+      logger.error('Fetch operation failed', err, 'GitStatusBar');
     } finally {
       setIsFetching(false);
     }

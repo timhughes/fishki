@@ -6,6 +6,8 @@ export class ApiError extends Error {
   }
 }
 
+import logger from '../utils/logger';
+
 export class ApiClient {
   private csrfToken: string | null = null;
 
@@ -38,15 +40,24 @@ export class ApiClient {
 
     if (!response.ok) {
       const message = await response.text();
-      throw new ApiError(
-        response.status,
-        message || `API request failed: ${response.statusText}`
-      );
+      const errorMsg = message || `API request failed: ${response.statusText}`;
+      logger.error('API request failed', { 
+        url, 
+        status: response.status,
+        statusText: response.statusText,
+        message: errorMsg
+      }, 'ApiClient');
+      throw new ApiError(response.status, errorMsg);
     }
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return response.json();
+      try {
+        return response.json();
+      } catch (error) {
+        logger.error('Failed to parse JSON response', error, 'ApiClient');
+        throw new ApiError(500, 'Invalid JSON response');
+      }
     }
 
     return response.text();
@@ -63,7 +74,7 @@ export class ApiClient {
         this.csrfToken = data.csrfToken;
       }
     } catch (error) {
-      console.error('Failed to fetch CSRF token:', error);
+      logger.error('Failed to fetch CSRF token', error, 'ApiClient');
     }
   }
 

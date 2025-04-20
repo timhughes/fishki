@@ -18,6 +18,7 @@ import { api } from '../api/client';
 import { useNavigation } from '../contexts/NavigationContext';
 import { MarkdownToolbar } from './MarkdownToolbar';
 import { useMarkdownEditor } from '../hooks/useMarkdownEditor';
+import logger from '../utils/logger';
 import { CustomTextArea } from './CustomTextArea';
 import { FileBreadcrumbs } from './Breadcrumbs';
 
@@ -87,6 +88,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const handleSave = async () => {
     try {
       setSaving(true);
+      logger.info(`Saving file: ${filePath}`, null, 'MarkdownEditor');
       setError(undefined);
       await api.save(filePath, content);
       setHasChanges(false);
@@ -95,6 +97,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       onSave();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
+      logger.error('Failed to save file', { filename: filePath, error: err }, 'MarkdownEditor');
       setSaving(false);
     }
   };

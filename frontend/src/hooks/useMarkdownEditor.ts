@@ -17,9 +17,7 @@ export const useMarkdownEditor = ({ content, setContent }: UseMarkdownEditorProp
   
   // Effect to track changes
   useEffect(() => {
-    // Log the number of textareas for debugging
-    console.log('Textareas in DOM:', document.querySelectorAll('textarea').length);
-    console.log('Inputs in DOM:', document.querySelectorAll('input').length);
+    // No-op effect to track content changes
   }, [content]);
 
   // Helper function to get the current selection from a textarea

@@ -18,6 +18,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { ThemeToggle } from './components/ThemeToggle';
 import { GitStatusBar } from './components/GitStatusBar';
 import { useTheme } from './contexts/ThemeContext';
+import logger from './utils/logger';
 import { useNavigation } from './contexts/NavigationContext';
 import { api } from './api/client';
 import { addMdExtension, removeMdExtension } from './utils/path';
@@ -66,6 +67,7 @@ const ViewPage = ({ onPageDeleted }: { onPageDeleted: () => void }) => {
       if (isFolder || !path) {
         // For folder paths, navigate directly to the index path
         const cleanPath = path?.replace(/\/$/, ''); // Remove trailing slash if present
+        logger.info(`Redirecting folder path to index: ${cleanPath || 'root'}`, null, 'App');
         navigate(`/page/${cleanPath ? `${cleanPath}/index` : 'index'}`);
         return; // Exit early, we're navigating away
       }

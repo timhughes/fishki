@@ -29,9 +29,9 @@ interface CustomTextAreaProps {
 
 export const CustomTextArea = forwardRef<HTMLTextAreaElement, CustomTextAreaProps>(
   ({ value, onChange, onKeyDown, disabled = false, placeholder, sx }, ref) => {
-    // Log the number of textareas for debugging
+    // Initialize component
     useEffect(() => {
-      console.log('Custom TextArea - Textareas in DOM:', document.querySelectorAll('textarea').length);
+      // No-op effect for component initialization
     }, []);
 
     return (

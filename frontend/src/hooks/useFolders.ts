@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { FileInfo } from '../types/api';
+import logger from '../utils/logger';
 
 export interface UseFoldersResult {
   folders: string[];
@@ -40,10 +41,7 @@ export function useFolders(shouldFetch: boolean): UseFoldersResult {
       } catch (err) {
         if (isMounted) {
           setError('Failed to load folders');
-          // Use a custom logger that doesn't log during tests
-          if (process.env.NODE_ENV !== 'test') {
-            console.error('Failed to load folders:', err);
-          }
+          logger.error('Failed to load folders', err, 'useFolders');
         }
       } finally {
         if (isMounted) {
