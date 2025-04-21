@@ -79,8 +79,7 @@ describe('PageBrowser', () => {
     expect(screen.getByText('wiki-repo')).toBeInTheDocument();
   });
   
-  // Skip this test for now as the implementation has changed
-  test.skip('clicking on root node navigates to root index', async () => {
+  test('clicking on root node toggles folder expansion', async () => {
     // Render component
     render(
       <PageBrowser 
@@ -105,13 +104,58 @@ describe('PageBrowser', () => {
       ]);
     });
     
+    // Verify localStorage was called to save expanded state
+    expect(mockLocalStorage.setItem).toHaveBeenCalled();
+    
     // Click on the root node (wiki-repo)
     await act(async () => {
       fireEvent.click(screen.getByText('wiki-repo'));
     });
     
-    // Verify navigation to root index
-    expect(mockNavigate).toHaveBeenCalledWith('/page/index');
+    // Verify localStorage was called again with updated expanded state
+    expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(2);
+    
+    // The second call should contain the updated expanded folders state
+    const lastCall = mockLocalStorage.setItem.mock.calls[1];
+    expect(lastCall[0]).toBe('fishki-expanded-folders');
+    
+    // Parse the JSON to verify the root folder state was toggled
+    const savedState = JSON.parse(lastCall[1]);
+    expect(savedState).toHaveProperty('root');
+  });
+  
+  test('clicking on file calls onFileSelect with correct path', async () => {
+    // Render component
+    render(
+      <PageBrowser 
+        onFileSelect={mockOnFileSelect}
+        selectedFile=""
+        refreshTrigger={0}
+      />
+    );
+    
+    // Resolve the API calls
+    await act(async () => {
+      resolveGetConfig({ wikiPath: '/test/wiki/path' });
+      resolveGetFiles([
+        { 
+          path: '', 
+          type: 'folder', 
+          name: 'wiki-repo',
+          children: [
+            { path: 'page2.md', type: 'file', name: 'page2.md' }
+          ]
+        }
+      ]);
+    });
+    
+    // Click on the file (page2)
+    await act(async () => {
+      fireEvent.click(screen.getByText('page2'));
+    });
+    
+    // Verify onFileSelect was called with the correct path
+    expect(mockOnFileSelect).toHaveBeenCalledWith('page2.md');
   });
   
   test('shows error when wiki path is not set', async () => {
