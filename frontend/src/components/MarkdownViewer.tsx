@@ -236,16 +236,23 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               justifyContent: { xs: 'flex-end', sm: 'flex-end' },
             }}
           >
-            {/* Primary action button */}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onEdit}
-              startIcon={<EditIcon />}
-              size="small"
-            >
-              Edit
-            </Button>
+            {/* More subtle Edit button */}
+            <Tooltip title="Edit page">
+              <IconButton
+                color="primary"
+                onClick={onEdit}
+                size="small"
+                sx={{ 
+                  borderRadius: 1,
+                  backgroundColor: 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  }
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             
             {/* Secondary actions in a menu */}
             <Tooltip title="More options">

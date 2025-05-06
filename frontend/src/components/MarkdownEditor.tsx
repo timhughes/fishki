@@ -8,6 +8,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -196,26 +197,42 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               justifyContent: { xs: 'space-between', sm: 'flex-end' },
             }}
           >
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleCancel}
-              disabled={saving}
-              startIcon={<CancelIcon />}
-              size="small"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
-              size="small"
-            >
-              Save
-            </Button>
+            <Tooltip title="Cancel">
+              <IconButton
+                color="secondary"
+                onClick={handleCancel}
+                disabled={saving}
+                size="small"
+                sx={{ 
+                  borderRadius: 1,
+                  backgroundColor: 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  }
+                }}
+              >
+                <CancelIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Save changes">
+              <span> {/* Wrapper to handle disabled state with tooltip */}
+                <IconButton
+                  color="primary"
+                  onClick={handleSave}
+                  disabled={saving}
+                  size="small"
+                  sx={{ 
+                    borderRadius: 1,
+                    backgroundColor: 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
+                >
+                  {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize="small" />}
+                </IconButton>
+              </span>
+            </Tooltip>
           </Box>
         </Box>
         
