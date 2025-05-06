@@ -344,19 +344,30 @@ function AppContent() {
       <Box sx={{ display: 'flex', height: '100vh' }}>
         {/* App Bar */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-          <Toolbar>
+          <Toolbar sx={{ minHeight: { xs: '56px', sm: '64px' } }}>
             <IconButton
               color="inherit"
               edge="start"
               onClick={toggleDrawer}
-              sx={{ mr: 2 }}
+              sx={{ mr: 1 }}
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" noWrap component="div" sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1.1rem', sm: '1.25rem' }
+            }}>
               Fishki Wiki
             </Typography>
-            <GitStatusBar />
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              '& > *': { 
+                display: { xs: 'none', sm: 'flex' } 
+              }
+            }}>
+              <GitStatusBar />
+            </Box>
             <ThemeToggle />
           </Toolbar>
         </AppBar>
@@ -375,9 +386,10 @@ function AppContent() {
             left: 0,
             zIndex: theme => theme.zIndex.drawer,
             bgcolor: 'background.paper',
+            display: { xs: drawerOpen ? 'block' : 'none', sm: 'block' }
           }}
         >
-          <Toolbar /> {/* Spacer to push content below AppBar */}
+          <Toolbar sx={{ minHeight: { xs: '56px', sm: '64px' } }} /> {/* Spacer to push content below AppBar */}
           <Box sx={{ 
             height: 'calc(100vh - 64px)', 
             overflowY: 'auto',
@@ -407,18 +419,24 @@ function AppContent() {
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
-            width: drawerOpen ? 'calc(100% - var(--sidebar-width, 300px))' : '100%',
+            p: { xs: 1, sm: 2, md: 3 },
+            width: { 
+              xs: '100%',
+              sm: drawerOpen ? 'calc(100% - var(--sidebar-width, 300px))' : '100%'
+            },
             transition: drawerOpen ? 'none' : 'width 0.2s',
             bgcolor: 'background.default',
-            marginLeft: drawerOpen ? 'var(--sidebar-width, 300px)' : 0,
+            marginLeft: { 
+              xs: 0,
+              sm: drawerOpen ? 'var(--sidebar-width, 300px)' : 0
+            },
             display: 'flex',
             flexDirection: 'column',
             height: '100vh',
             overflow: 'hidden', // Prevent scrolling of the main container
           }}
         >
-          <Toolbar /> {/* Spacer to push content below AppBar */}
+          <Toolbar sx={{ minHeight: { xs: '56px', sm: '64px' } }} /> {/* Spacer to push content below AppBar */}
           
           {appLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>

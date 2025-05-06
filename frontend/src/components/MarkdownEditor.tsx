@@ -177,9 +177,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         <Box 
           sx={{ 
             display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
             justifyContent: 'space-between', 
-            alignItems: 'center',
+            alignItems: { xs: 'flex-start', sm: 'center' },
             mb: 2,
+            gap: 1,
             flex: '0 0 auto', // Don't grow or shrink
           }}
         >
@@ -190,6 +192,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: 1,
+              width: { xs: '100%', sm: 'auto' },
+              justifyContent: { xs: 'space-between', sm: 'flex-end' },
             }}
           >
             <Button

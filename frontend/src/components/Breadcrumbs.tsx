@@ -5,78 +5,114 @@ import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 import HomeIcon from '@mui/icons-material/Home';
 import Box from '@mui/material/Box';
+import { removeMdExtension } from '../utils/path';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
 interface FileBreadcrumbsProps {
   filePath: string;
-  rootName?: string;
 }
 
-export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({ 
-  filePath, 
-  rootName = 'fishki' 
-}) => {
+export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({ filePath }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Remove .md extension if present
-  const cleanPath = filePath.replace(/\.md$/, '');
+  const cleanPath = removeMdExtension(filePath);
   
   // Split the path into segments
   const segments = cleanPath.split('/').filter(Boolean);
   
-  // Create breadcrumb items
+  // Build the breadcrumb items
   const breadcrumbItems = [];
   
-  // Add root item (repository name)
+  // Add home link
   breadcrumbItems.push(
     <Link
-      component={RouterLink}
-      underline="hover"
-      sx={{ display: 'flex', alignItems: 'center' }}
-      color="inherit"
-      to="/page/"
       key="home"
+      component={RouterLink}
+      to="/page/index"
+      color="inherit"
+      sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        fontSize: { xs: '0.85rem', sm: '0.875rem' }
+      }}
     >
-      <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-      {rootName}
+      <HomeIcon sx={{ mr: 0.5, fontSize: { xs: '0.9rem', sm: '1rem' } }} />
+      {!isMobile && 'Home'}
     </Link>
   );
   
-  // Add intermediate path segments
+  // Add intermediate segments
+  let currentPath = '';
   for (let i = 0; i < segments.length - 1; i++) {
-    const segmentPath = segments.slice(0, i + 1).join('/');
+    currentPath += `${segments[i]}/`;
+    
+    // For mobile, only show the last segment and first segment
+    if (isMobile && i !== 0 && segments.length > 3 && i < segments.length - 2) {
+      if (i === 1) {
+        breadcrumbItems.push(
+          <Typography 
+            key="ellipsis" 
+            color="text.secondary" 
+            sx={{ fontSize: '0.85rem' }}
+          >
+            ...
+          </Typography>
+        );
+      }
+      continue;
+    }
+    
     breadcrumbItems.push(
       <Link
+        key={currentPath}
         component={RouterLink}
-        underline="hover"
+        to={`/page/${currentPath}index`}
         color="inherit"
-        to={`/page/${segmentPath}/`}
-        key={segmentPath}
+        sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}
       >
         {segments[i]}
       </Link>
     );
   }
   
-  // Add current page (last segment) as non-clickable
+  // Add current segment (if any)
   if (segments.length > 0) {
+    const lastSegment = segments[segments.length - 1];
     breadcrumbItems.push(
       <Typography 
+        key="current" 
         color="text.primary" 
-        key="current"
         sx={{ 
-          fontWeight: 'medium',
-          color: theme.palette.primary.main
+          fontWeight: 500,
+          fontSize: { xs: '0.85rem', sm: '0.875rem' },
+          maxWidth: { xs: '120px', sm: '200px', md: '300px' },
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
         }}
       >
-        {segments[segments.length - 1]}
+        {lastSegment}
       </Typography>
     );
   }
   
   return (
-    <Box>
-      <Breadcrumbs aria-label="breadcrumb" separator="›" sx={{ fontSize: '0.9rem' }}>
+    <Box sx={{ 
+      overflow: 'hidden',
+      maxWidth: '100%'
+    }}>
+      <Breadcrumbs 
+        aria-label="breadcrumb"
+        sx={{ 
+          flexWrap: 'nowrap',
+          '& .MuiBreadcrumbs-ol': {
+            flexWrap: 'nowrap'
+          }
+        }}
+      >
         {breadcrumbItems}
       </Breadcrumbs>
     </Box>

@@ -264,6 +264,7 @@ export const PageBrowser: React.FC<PageBrowserProps> = ({
         borderRight: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
+        WebkitOverflowScrolling: 'touch', // Improve scrolling on iOS
       }}
     >
       <List dense disablePadding sx={{ py: 0.3 }}>
