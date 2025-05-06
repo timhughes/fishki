@@ -8,6 +8,13 @@ import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MoveIcon from '@mui/icons-material/DriveFileRenameOutline';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -44,6 +51,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const [notFound, setNotFound] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  
+  // Menu state
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const isMenuOpen = Boolean(menuAnchorEl);
   
   // Get theme mode
   useTheme(); // Use theme context but don't need the mode directly
@@ -82,8 +93,18 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     loadContent();
   }, [filePath]);
 
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+
   // Delete handlers
   const handleDeleteClick = () => {
+    handleMenuClose();
     setDeleteDialogOpen(true);
     setDeleteError(undefined);
   };
@@ -109,6 +130,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   
   // Move handlers
   const handleMoveClick = () => {
+    handleMenuClose();
     setMoveDialogOpen(true);
     setMoveError(undefined);
   };
@@ -210,28 +232,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: 1,
-              width: { xs: '100%', sm: 'auto' },
-              justifyContent: { xs: 'space-between', sm: 'flex-end' },
+              width: { xs: 'auto', sm: 'auto' },
+              justifyContent: { xs: 'flex-end', sm: 'flex-end' },
             }}
           >
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleDeleteClick}
-              startIcon={<DeleteIcon />}
-              size="small"
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleMoveClick}
-              startIcon={<MoveIcon />}
-              size="small"
-            >
-              Move
-            </Button>
+            {/* Primary action button */}
             <Button
               variant="contained"
               color="primary"
@@ -241,6 +246,58 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             >
               Edit
             </Button>
+            
+            {/* Secondary actions in a menu */}
+            <Tooltip title="More options">
+              <IconButton
+                aria-label="more options"
+                aria-controls="page-actions-menu"
+                aria-haspopup="true"
+                onClick={handleMenuOpen}
+                size="small"
+                sx={{ 
+                  ml: 0.5,
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              >
+                <MoreVertIcon />
+              </IconButton>
+            </Tooltip>
+            
+            <Menu
+              id="page-actions-menu"
+              anchorEl={menuAnchorEl}
+              open={isMenuOpen}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                'aria-labelledby': 'page-actions-button',
+              }}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <MenuItem onClick={handleMoveClick}>
+                <ListItemIcon>
+                  <MoveIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Move</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
+                <ListItemIcon>
+                  <DeleteIcon fontSize="small" color="error" />
+                </ListItemIcon>
+                <ListItemText>Delete</ListItemText>
+              </MenuItem>
+            </Menu>
           </Box>
         </Box>
         
