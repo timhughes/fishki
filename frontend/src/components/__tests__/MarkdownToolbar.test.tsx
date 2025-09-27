@@ -9,7 +9,7 @@ describe('MarkdownToolbar', () => {
   });
 
   test('renders all formatting buttons', () => {
-    render(<MarkdownToolbar onAction={mockActionHandler} />);
+    render(<MarkdownToolbar onAction={mockActionHandler} viewMode="split" onViewModeChange={jest.fn()} />);
     
     // Check for buttons by their aria-label
     expect(screen.getByLabelText(/Bold/i)).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('MarkdownToolbar', () => {
   });
 
   test('calls action handler when buttons are clicked', () => {
-    render(<MarkdownToolbar onAction={mockActionHandler} />);
+    render(<MarkdownToolbar onAction={mockActionHandler} viewMode="split" onViewModeChange={jest.fn()} />);
     
     // Click on bold button
     fireEvent.click(screen.getByLabelText(/Bold/i));

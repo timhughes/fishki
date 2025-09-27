@@ -300,4 +300,43 @@ describe('MarkdownViewer', () => {
     // Check if onNotFound was called
     expect(mockOnNotFound).toHaveBeenCalled();
   });
+
+  test('calls window.print when print button is clicked', async () => {
+    // Mock window.print
+    const mockPrint = jest.fn();
+    Object.defineProperty(window, 'print', {
+      value: mockPrint,
+      writable: true
+    });
+
+    await act(async () => {
+      renderWithRouter(
+        <MarkdownViewer 
+          filePath="test.md"
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onRename={mockOnRename}
+          onNotFound={mockOnNotFound}
+        />
+      );
+    });
+    
+    // Wait for content to load
+    await screen.findByText('# Test Content');
+
+    // Open menu by clicking more options button
+    const moreOptionsButton = screen.getByLabelText('more options');
+    await act(async () => {
+      fireEvent.click(moreOptionsButton);
+    });
+
+    // Find and click the print button
+    const printButton = await screen.findByText('Print');
+    await act(async () => {
+      fireEvent.click(printButton);
+    });
+
+    // Check if window.print was called
+    expect(mockPrint).toHaveBeenCalled();
+  });
 });
