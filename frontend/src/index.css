@@ -218,3 +218,84 @@ html, body {
     border-color: #30363d;
   }
 }
+
+/* Print styles */
+@media print {
+  /* Hide everything except the main content */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the markdown content and its children */
+  .markdown-content, .markdown-content * {
+    visibility: visible;
+  }
+  
+  /* Position the content at the top of the page */
+  .markdown-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    color: black !important;
+    background: white !important;
+  }
+  
+  /* Ensure good contrast for printed text */
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4,
+  .markdown-content h5,
+  .markdown-content h6,
+  .markdown-content p,
+  .markdown-content li,
+  .markdown-content td,
+  .markdown-content th {
+    color: black !important;
+  }
+  
+  /* Style code blocks for print */
+  .markdown-content pre,
+  .markdown-content code {
+    background: #f8f8f8 !important;
+    color: black !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  
+  /* Style tables for print */
+  .markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: avoid;
+  }
+  
+  .markdown-content table th,
+  .markdown-content table td {
+    border: 1px solid #ddd !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Handle page breaks */
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3 {
+    page-break-after: avoid;
+  }
+  
+  .markdown-content blockquote {
+    border-left: 4px solid #ddd !important;
+    color: #666 !important;
+    page-break-inside: avoid;
+  }
+  
+  /* Hide images that might not print well */
+  .markdown-content img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}

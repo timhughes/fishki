@@ -8,6 +8,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MoveIcon from '@mui/icons-material/DriveFileRenameOutline';
+import PrintIcon from '@mui/icons-material/Print';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
@@ -169,6 +170,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     setMoveError(undefined);
   };
 
+  // Print handler
+  const handlePrint = () => {
+    handleMenuClose();
+    window.print();
+  };
+
   if (!filePath) {
     return (
       <Box sx={{ p: 2, textAlign: 'center' }}>
@@ -292,6 +299,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 horizontal: 'right',
               }}
             >
+              <MenuItem onClick={handlePrint}>
+                <ListItemIcon>
+                  <PrintIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Print</ListItemText>
+              </MenuItem>
               <MenuItem onClick={handleMoveClick}>
                 <ListItemIcon>
                   <MoveIcon fontSize="small" />
