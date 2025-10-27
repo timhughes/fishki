@@ -40,7 +40,7 @@ jobs:
     
     # Only upload coverage if it exists and the tests pass
     - name: Upload coverage report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: success() && hashFiles('coverage.out') != ''
       with:
         name: backend-coverage
@@ -78,7 +78,7 @@ jobs:
       run: go build -v ./cmd/fishki-server
     
     - name: Upload binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: success()
       with:
         name: fishki-server
@@ -127,7 +127,7 @@ jobs:
       run: cd frontend && npm run build
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: success()
       with:
         name: frontend-build
